@@ -47,7 +47,7 @@ public class ArticleController {
   @Operation(summary = "Get all articles or filter articles by various criteria", description = "Retrieve all articles or filter articles by category, tag, and/or content. Supports pagination and multiple filter combinations to narrow down search results.")
   @Parameters({@Parameter(name = "categoryId", description = "Category id to filter articles"),
       @Parameter(name = "tag", description = "Tag value to filter articles"),
-      @Parameter(name = "username", description = "Username to filter articles"),
+      @Parameter(name = "username", description = "Author's username to filter articles"),
       @Parameter(name = "isFeed", description = "Get user's feed"),
       @Parameter(name = "content", description = "Content value to filter articles"),
       @Parameter(name = "page", description = "Page number to retrieve"),

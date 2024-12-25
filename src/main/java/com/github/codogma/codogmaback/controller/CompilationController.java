@@ -42,20 +42,23 @@ public class CompilationController {
   @GetMapping
   @Operation(summary = "Get all compilations")
   @Parameters({@Parameter(name = "tag", description = "Tag to filter compilations"),
-      @Parameter(name = "info", description = "Information to filter compilations"),
+      @Parameter(name = "content", description = "Information to filter compilations"),
+      @Parameter(name = "username", description = "Owner's username to filter articles"),
       @Parameter(name = "isBookmarked", description = "Get bookmarked compilations"),
       @Parameter(name = "page", description = "Page number to retrieve"),
       @Parameter(name = "size", description = "Number of compilations per page"),
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
   public ResponseEntity<Page<GetCompilation>> getCompilations(
-      @RequestParam(required = false) String tag, @RequestParam(required = false) String info,
+      @RequestParam(required = false) String tag, @RequestParam(required = false) String content,
+      @RequestParam(required = false) String username,
       @RequestParam(required = false) Boolean isBookmarked,
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
       @RequestParam(defaultValue = "updatedAt") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetCompilation> compilations = compilationService.getCompilations(tag, info, isBookmarked,
+    Page<GetCompilation> compilations = compilationService.getCompilations(tag, content, username,
+        isBookmarked,
         page, size, sort, order, userModel);
     return ResponseEntity.ok(compilations);
   }
@@ -80,12 +83,11 @@ public class CompilationController {
   @Operation(summary = "Create a new compilation")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<GetCompilation> createCompilation(
+  public ResponseEntity<String> createCompilation(
       @Valid @ModelAttribute CreateCompilation createCompilation,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCompilation createdCompilation = compilationService.createCompilation(createCompilation,
-        userModel);
-    return new ResponseEntity<>(createdCompilation, HttpStatus.CREATED);
+    compilationService.createCompilation(createCompilation, userModel);
+    return ResponseEntity.ok("Compilation created successfully");
   }
 
   @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

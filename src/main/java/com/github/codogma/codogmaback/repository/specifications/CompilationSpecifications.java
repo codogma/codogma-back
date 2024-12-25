@@ -38,10 +38,15 @@ public class CompilationSpecifications {
     };
   }
 
-  public static Specification<CompilationModel> buildSpecification(String tagName,
-      List<Long> compilationIds, Boolean isBookmarked, UserModel userModel) {
+  public static Specification<CompilationModel> hasUsername(String username) {
+    return (root, query, builder) -> username != null ? builder.equal(
+        root.get("user").get("username"), username) : null;
+  }
+
+  public static Specification<CompilationModel> buildSpecification(String tagName, String username,
+      Boolean isBookmarked, UserModel userModel, List<Long> compilationIds) {
     Specification<CompilationModel> spec = Specification.where(hasTagName(tagName))
-        .and(hasInfoMatch(compilationIds));
+        .and(hasUsername(username)).and(hasInfoMatch(compilationIds));
     if (Boolean.TRUE.equals(isBookmarked)) {
       spec = spec.and(hasBookmarks(userModel));
     }
