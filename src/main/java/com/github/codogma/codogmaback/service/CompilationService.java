@@ -47,21 +47,21 @@ public class CompilationService {
   private int searchResultsLimit;
 
   @Transactional
-  public Page<GetCompilation> getCompilations(String tag, String info, Boolean isBookmarked,
-      int page, int size, String sort, String order, UserModel userModel) {
+  public Page<GetCompilation> getCompilations(String tag, String content, String username,
+      Boolean isBookmarked, int page, int size, String sort, String order, UserModel userModel) {
     UserModel foundUser = userModel != null ? userRepository.findById(userModel.getId())
         .orElseThrow(() -> exceptionFactory.userNotFound(userModel.getUsername())) : null;
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
     Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
     List<Long> compilationIds = null;
-    if (info != null && !info.isEmpty()) {
+    if (content != null && !content.isEmpty()) {
       SearchSession searchSession = Search.session(entityManager);
       compilationIds = searchSession.search(CompilationModel.class)
-          .where(f -> f.match().fields("title", "description").matching(info).fuzzy(1))
+          .where(f -> f.match().fields("title", "description").matching(content).fuzzy(1))
           .fetchHits(searchResultsLimit).stream().map(CompilationModel::getId).toList();
     }
     Specification<CompilationModel> spec = CompilationSpecifications.buildSpecification(tag,
-        compilationIds, isBookmarked, foundUser);
+        username, isBookmarked, foundUser, compilationIds);
     return compilationRepository.findAll(spec, pageable)
         .map(compilationModel -> convertCompilationToDTO(compilationModel, userModel));
   }
@@ -79,15 +79,14 @@ public class CompilationService {
   }
 
   @Transactional
-  public GetCompilation createCompilation(CreateCompilation createCompilation,
+  public void createCompilation(CreateCompilation createCompilation,
       UserModel userModel) {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
     compilation = compilationRepository.save(compilation);
     MultipartFile image = createCompilation.getImage();
     uploadCompilationImage(image, compilation);
-    compilation = compilationRepository.save(compilation);
-    return convertCompilationToDTO(compilation);
+    compilationRepository.save(compilation);
   }
 
   @Transactional
@@ -139,9 +138,16 @@ public class CompilationService {
   private GetCompilation convertCompilationToDTO(CompilationModel compilation,
       UserModel userModel) {
     boolean existed = bookmarkRepository.existsByUserAndCompilation(userModel, compilation);
+    String username =
+        compilation.getUser().getFirstName() != null
+            || compilation.getUser().getLastName() != null ?
+            compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
+            : compilation.getUser().getUsername();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())
-        .description(compilation.getDescription()).imageUrl(compilation.getImageUrl()).build();
+        .description(compilation.getDescription()).ownerName(username.trim())
+        .ownerAvatarUrl(compilation.getUser().getAvatarUrl())
+        .imageUrl(compilation.getImageUrl()).build();
   }
 
   private GetCompilation convertCompilationToDTO(CompilationModel compilation) {
