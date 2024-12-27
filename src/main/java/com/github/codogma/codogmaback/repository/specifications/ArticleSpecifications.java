@@ -50,6 +50,11 @@ public class ArticleSpecifications {
         root.join("categories").get("id"), categoryId) : null;
   }
 
+  public static Specification<ArticleModel> hasCompilationId(Long compilationId) {
+    return (root, query, builder) -> compilationId != null ? builder.equal(
+        root.join("compilations").get("id"), compilationId) : null;
+  }
+
   public static Specification<ArticleModel> hasContentMatch(List<Long> articleIds) {
     return (root, query, builder) -> articleIds != null ? root.get("id").in(articleIds) : null;
   }
@@ -73,11 +78,11 @@ public class ArticleSpecifications {
         root.get("user").get("username"), username) : null;
   }
 
-  public static Specification<ArticleModel> buildSpecification(Long categoryId, String tagName,
-      String username, List<Language> supportedLanguages, Boolean isFeed, UserModel userModel,
-      List<Long> articleIds) {
+  public static Specification<ArticleModel> buildSpecification(Long categoryId, Long compilationId,
+      String tagName, String username, List<Language> supportedLanguages, Boolean isFeed,
+      UserModel userModel, List<Long> articleIds) {
     Specification<ArticleModel> spec = Specification.where(hasCategoryId(categoryId))
-        .and(hasTagName(tagName)).and(hasUsername(username))
+        .and(hasCompilationId(compilationId)).and(hasTagName(tagName)).and(hasUsername(username))
         .and(hasSupportedLanguage(supportedLanguages)).and(hasAccess(userModel))
         .and(hasContentMatch(articleIds));
     if (Boolean.TRUE.equals(isFeed)) {

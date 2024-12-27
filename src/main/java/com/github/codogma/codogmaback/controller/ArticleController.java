@@ -46,6 +46,7 @@ public class ArticleController {
   @GetMapping
   @Operation(summary = "Get all articles or filter articles by various criteria", description = "Retrieve all articles or filter articles by category, tag, and/or content. Supports pagination and multiple filter combinations to narrow down search results.")
   @Parameters({@Parameter(name = "categoryId", description = "Category id to filter articles"),
+      @Parameter(name = "compilationId", description = "Compilation id to filter articles"),
       @Parameter(name = "tag", description = "Tag value to filter articles"),
       @Parameter(name = "username", description = "Author's username to filter articles"),
       @Parameter(name = "isFeed", description = "Get user's feed"),
@@ -55,16 +56,17 @@ public class ArticleController {
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
   public ResponseEntity<Page<GetArticle>> getArticles(
-      @RequestParam(required = false) Long categoryId, @RequestParam(required = false) String tag,
-      @RequestParam(required = false) String username,
+      @RequestParam(required = false) Long categoryId,
+      @RequestParam(required = false) Long compilationId,
+      @RequestParam(required = false) String tag, @RequestParam(required = false) String username,
       @RequestParam(required = false) Boolean isFeed,
       @RequestParam(required = false) String content, @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size,
       @RequestParam(defaultValue = "updatedAt") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetArticle> articles = articleService.getArticles(order, sort, page, size, categoryId, tag,
-        username, isFeed, userModel, content);
+    Page<GetArticle> articles = articleService.getArticles(order, sort, page, size, categoryId,
+        compilationId, tag, username, isFeed, userModel, content);
     return ResponseEntity.ok(articles);
   }
 

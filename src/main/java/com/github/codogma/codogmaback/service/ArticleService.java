@@ -71,16 +71,16 @@ public class ArticleService {
 
   @Transactional
   public Page<GetArticle> getArticles(String order, String sort, int page, int size,
-      Long categoryId, String tag, String username, Boolean isFeed, UserModel userModel,
-      String content) {
+      Long categoryId, Long compilationId, String tag, String username, Boolean isFeed,
+      UserModel userModel, String content) {
     UserModel foundUser = userModel != null ? userRepository.findById(userModel.getId())
         .orElseThrow(() -> exceptionFactory.userNotFound(userModel.getUsername())) : null;
     List<Language> supportedLanguages = localizationContext.getSupportedLanguages();
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
     Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
     List<Long> articleIds = getArticleIds(content);
-    Specification<ArticleModel> spec = ArticleSpecifications.buildSpecification(categoryId, tag,
-        username, supportedLanguages, isFeed, foundUser, articleIds);
+    Specification<ArticleModel> spec = ArticleSpecifications.buildSpecification(categoryId,
+        compilationId, tag, username, supportedLanguages, isFeed, foundUser, articleIds);
     return articleRepository.findAll(spec, pageable).map(this::convertArticleModelToDTO)
         .map(this::preparePreview);
   }
