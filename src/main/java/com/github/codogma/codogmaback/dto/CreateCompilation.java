@@ -17,7 +17,7 @@ public class CreateCompilation {
 
   @Schema(description = "Title of the compilation", example = "Java Basics", requiredMode = RequiredMode.REQUIRED)
   private String title;
-  @Schema(description = "Compilation's image", requiredMode = RequiredMode.REQUIRED)
+  @Schema(description = "Compilation's image")
   private MultipartFile image;
   @Schema(description = "Description of the compilation", example = "About the basics of java programming")
   private String description;
