@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.service;
 
 import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
 
+import com.github.codogma.codogmaback.dto.CompilationsDTO;
 import com.github.codogma.codogmaback.dto.CreateDraftArticle;
 import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.GetCategory;
@@ -9,8 +10,6 @@ import com.github.codogma.codogmaback.dto.GetCompilation;
 import com.github.codogma.codogmaback.dto.GetTag;
 import com.github.codogma.codogmaback.dto.UpdateArticle;
 import com.github.codogma.codogmaback.dto.UpdateDraftArticle;
-import com.github.codogma.codogmaback.exception.CompilationAlreadyExistsException;
-import com.github.codogma.codogmaback.exception.CompilationNotExistsException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.ArticleModel;
@@ -388,34 +387,12 @@ public class ArticleService {
   }
 
   @Transactional
-  public GetArticle compilate(Long articleId, Long compilationId) {
-    CompilationModel compilation = compilationRepository.findById(compilationId).orElseThrow();
+  public GetArticle compilate(Long articleId, CompilationsDTO compilations) {
+    List<CompilationModel> compilationModelList = compilationRepository.findAllById(
+        compilations.getCompilationIds());
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    boolean compilationExists = compilationRepository.existsByArticles_Id(articleId);
-    if (compilationExists) {
-      throw new CompilationAlreadyExistsException("Article already exists in compilation");
-    }
-    compilation.getArticles().add(article);
-    article.getCompilations().add(compilation);
-    compilationRepository.save(compilation);
-    ArticleModel savedArticle = articleRepository.save(article);
-    return convertArticleModelToDTO(savedArticle);
-  }
-
-  @Transactional
-  public GetArticle uncompilate(Long articleId, Long compilationId) {
-    CompilationModel compilation = compilationRepository.findById(compilationId).orElseThrow();
-    ArticleModel article = articleRepository.findById(articleId)
-        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    boolean compilationExists = compilationRepository.existsByArticles_Id(articleId);
-    if (!compilationExists) {
-      throw new CompilationNotExistsException("Article not exists in compilation");
-    }
-    compilation.getArticles().remove(article);
-    article.getCompilations().remove(compilation);
-    compilationRepository.save(compilation);
-    articleRepository.save(article);
+    article.setCompilations(compilationModelList);
     ArticleModel savedArticle = articleRepository.save(article);
     return convertArticleModelToDTO(savedArticle);
   }

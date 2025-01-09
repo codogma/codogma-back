@@ -1,5 +1,6 @@
 package com.github.codogma.codogmaback.controller;
 
+import com.github.codogma.codogmaback.dto.CompilationsDTO;
 import com.github.codogma.codogmaback.dto.CreateDraftArticle;
 import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.UpdateArticle;
@@ -216,25 +217,13 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PostMapping("/{id}/compilate")
-  @Operation(summary = "Add the article to the compilation")
+  @PostMapping("/{id}/add-to-compilations")
+  @Operation(summary = "Add the article to the compilations")
   @SecurityRequirement(name = "bearerAuth")
-  @Parameters({@Parameter(name = "compilationId", description = "Compilation id to add articles")})
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetArticle> compilate(@PathVariable Long id,
-      @RequestParam Long compilationId) {
-    GetArticle article = articleService.compilate(id, compilationId);
-    return ResponseEntity.ok(article);
-  }
-
-  @DeleteMapping("/{id}/uncompilate")
-  @Operation(summary = "Delete the article from the compilation")
-  @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  @Parameters({@Parameter(name = "compilationId", description = "Compilation id to add articles")})
-  public ResponseEntity<GetArticle> uncompilate(@PathVariable Long id,
-      @RequestParam Long compilationId) {
-    GetArticle article = articleService.uncompilate(id, compilationId);
+      @Valid @RequestBody CompilationsDTO compilations) {
+    GetArticle article = articleService.compilate(id, compilations);
     return ResponseEntity.ok(article);
   }
 }
