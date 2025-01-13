@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @AllArgsConstructor
 @Schema(name = "Update Compilation")
 public class UpdateCompilation {
-  
+
   @Schema(description = "Title of the compilation", example = "Java Basics")
   private String title;
   @Schema(description = "Compilation's image")
