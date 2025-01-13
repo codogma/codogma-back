@@ -100,7 +100,7 @@ public class CompilationService {
       compilation.setTitle(title);
     }
     String description = updateCompilation.getDescription();
-    if (description != null && !description.isEmpty()) {
+    if (description != null) {
       compilation.setDescription(description);
     }
     MultipartFile image = updateCompilation.getImage();
