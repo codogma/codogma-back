@@ -95,8 +95,9 @@ public class CompilationController {
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<String> updateCompilation(@PathVariable Long id,
-      @Valid @ModelAttribute UpdateCompilation updateCompilation) {
-    compilationService.updateCompilation(id, updateCompilation);
+      @Valid @ModelAttribute UpdateCompilation updateCompilation,
+      @AuthenticationPrincipal UserModel userModel) {
+    compilationService.updateCompilation(id, updateCompilation, userModel);
     return ResponseEntity.ok("Compilation updated successfully");
   }
 
@@ -104,8 +105,9 @@ public class CompilationController {
   @Operation(summary = "Delete the compilation")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<String> deleteCompilation(@PathVariable Long id) {
-    compilationService.deleteCompilation(id);
+  public ResponseEntity<String> deleteCompilation(@PathVariable Long id,
+      @AuthenticationPrincipal UserModel userModel) {
+    compilationService.deleteCompilation(id, userModel);
     return new ResponseEntity<>("Compilation deleted successfully", HttpStatus.NO_CONTENT);
   }
 

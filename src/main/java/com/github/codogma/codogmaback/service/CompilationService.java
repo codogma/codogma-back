@@ -79,8 +79,7 @@ public class CompilationService {
   }
 
   @Transactional
-  public void createCompilation(CreateCompilation createCompilation,
-      UserModel userModel) {
+  public void createCompilation(CreateCompilation createCompilation, UserModel userModel) {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
     compilation = compilationRepository.save(compilation);
@@ -90,18 +89,32 @@ public class CompilationService {
   }
 
   @Transactional
-  public void updateCompilation(Long id, UpdateCompilation updateCompilation) {
-    CompilationModel category = compilationRepository.findById(id)
+  public void updateCompilation(Long id, UpdateCompilation updateCompilation, UserModel userModel) {
+    CompilationModel compilation = compilationRepository.findById(id)
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
+    if (!userModel.getId().equals(compilation.getUser().getId())) {
+      throw exceptionFactory.notAllowedToEdit(compilation.getId());
+    }
+    String title = updateCompilation.getTitle();
+    if (title != null && !title.isEmpty()) {
+      compilation.setTitle(title);
+    }
+    String description = updateCompilation.getDescription();
+    if (description != null && !description.isEmpty()) {
+      compilation.setDescription(description);
+    }
     MultipartFile image = updateCompilation.getImage();
-    uploadCompilationImage(image, category);
-    compilationRepository.save(category);
+    uploadCompilationImage(image, compilation);
+    compilationRepository.save(compilation);
   }
 
   @Transactional
-  public void deleteCompilation(Long id) {
+  public void deleteCompilation(Long id, UserModel userModel) {
     CompilationModel compilation = compilationRepository.findById(id)
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
+    if (!userModel.getId().equals(compilation.getUser().getId())) {
+      throw exceptionFactory.notAllowedToEdit(compilation.getId());
+    }
     compilation.getArticles().forEach(article -> article.getCompilations().remove(compilation));
     compilationRepository.delete(compilation);
   }
@@ -139,15 +152,14 @@ public class CompilationService {
       UserModel userModel) {
     boolean existed = bookmarkRepository.existsByUserAndCompilation(userModel, compilation);
     String username =
-        compilation.getUser().getFirstName() != null
-            || compilation.getUser().getLastName() != null ?
-            compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
+        compilation.getUser().getFirstName() != null || compilation.getUser().getLastName() != null
+            ? compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
             : compilation.getUser().getUsername();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())
         .description(compilation.getDescription()).ownerName(username.trim())
-        .ownerAvatarUrl(compilation.getUser().getAvatarUrl())
-        .imageUrl(compilation.getImageUrl()).build();
+        .ownerAvatarUrl(compilation.getUser().getAvatarUrl()).imageUrl(compilation.getImageUrl())
+        .build();
   }
 
   private GetCompilation convertCompilationToDTO(CompilationModel compilation) {
