@@ -151,15 +151,15 @@ public class CompilationService {
   private GetCompilation convertCompilationToDTO(CompilationModel compilation,
       UserModel userModel) {
     boolean existed = bookmarkRepository.existsByUserAndCompilation(userModel, compilation);
-    String username =
+    String userFullName =
         compilation.getUser().getFirstName() != null || compilation.getUser().getLastName() != null
             ? compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
             : compilation.getUser().getUsername();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())
-        .description(compilation.getDescription()).ownerName(username.trim())
-        .ownerAvatarUrl(compilation.getUser().getAvatarUrl()).imageUrl(compilation.getImageUrl())
-        .build();
+        .description(compilation.getDescription()).ownerName(compilation.getUser().getUsername())
+        .ownerFullName(userFullName.trim()).ownerAvatarUrl(compilation.getUser().getAvatarUrl())
+        .imageUrl(compilation.getImageUrl()).build();
   }
 
   private GetCompilation convertCompilationToDTO(CompilationModel compilation) {

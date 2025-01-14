@@ -25,8 +25,10 @@ public class GetCompilation {
   private String title;
   @Schema(description = "Description of the compilation", example = "About the basics of java programming")
   private String description;
-  @Schema(description = "Owner name of the compilation", example = "JohnDoe")
+  @Schema(description = "Owner name of the compilation", example = "john")
   private String ownerName;
+  @Schema(description = "Owner full name of the compilation", example = "John Doe")
+  private String ownerFullName;
   @Schema(description = "Owner's avatar image")
   private String ownerAvatarUrl;
   @Schema(description = "Image of the compilation")
