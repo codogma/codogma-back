@@ -40,7 +40,7 @@ public class CommentController {
   private final CommentService commentService;
 
   @GetMapping
-  @Operation(summary = "Get all comments for an article")
+  @Operation(summary = "Get filtered comments")
   @Parameters({@Parameter(name = "articleId", description = "Article id to filter comments"),
       @Parameter(name = "username", description = "Username to filter comments"),
       @Parameter(name = "content", description = "Content to filter comments"),

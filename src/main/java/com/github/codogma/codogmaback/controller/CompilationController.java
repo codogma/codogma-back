@@ -40,7 +40,7 @@ public class CompilationController {
   private final CompilationService compilationService;
 
   @GetMapping
-  @Operation(summary = "Get all compilations")
+  @Operation(summary = "Get filtered compilations")
   @Parameters({@Parameter(name = "tag", description = "Tag to filter compilations"),
       @Parameter(name = "content", description = "Information to filter compilations"),
       @Parameter(name = "username", description = "Owner's username to filter articles"),

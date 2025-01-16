@@ -46,7 +46,7 @@ public class UserController {
   private final UserService userService;
 
   @GetMapping
-  @Operation(summary = "Get all users")
+  @Operation(summary = "Get filtered users")
   @Parameters({@Parameter(name = "categoryId", description = "Category id to filter authors"),
       @Parameter(name = "role", description = "Role to filter users", schema = @Schema(implementation = UserRole.class)),
       @Parameter(name = "tag", description = "Tag to filter users"),

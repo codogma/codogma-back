@@ -44,7 +44,8 @@ public class SecurityConfiguration {
             auth -> auth.requestMatchers("/auth/**", "/swagger-ui.html", "/swagger-ui/**",
                     "/api-docs/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/articles/**", "/categories/**", "/users/**",
-                    "/compilations/**", "/images/**", "/comments/**", "/tags/**").permitAll()
+                    "/compilations/**", "/images/**", "/comments/**", "/tags/**",
+                    "/notifications/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/articles/*/record-view").permitAll()
                 .anyRequest().authenticated()).oauth2Login(
             oauth2 -> oauth2.successHandler(customOAuth2SuccessHandler).userInfoEndpoint(

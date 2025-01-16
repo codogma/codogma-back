@@ -45,7 +45,7 @@ public class ArticleController {
   private final ArticleService articleService;
 
   @GetMapping
-  @Operation(summary = "Get all articles or filter articles by various criteria", description = "Retrieve all articles or filter articles by category, tag, and/or content. Supports pagination and multiple filter combinations to narrow down search results.")
+  @Operation(summary = "Get filtered articles", description = "Retrieve all articles or filter articles by category, tag, and/or content. Supports pagination and multiple filter combinations to narrow down search results.")
   @Parameters({@Parameter(name = "categoryId", description = "Category id to filter articles"),
       @Parameter(name = "compilationId", description = "Compilation id to filter articles"),
       @Parameter(name = "tag", description = "Tag value to filter articles"),
@@ -91,7 +91,7 @@ public class ArticleController {
   }
 
   @GetMapping("/{id}")
-  @Operation(summary = "Get the article")
+  @Operation(summary = "Get the article by id")
   public ResponseEntity<GetArticle> getArticleById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
     GetArticle article = articleService.getArticleById(id, userModel);
@@ -172,7 +172,7 @@ public class ArticleController {
   @PatchMapping("/{id}/hide")
   @Operation(summary = "Hide the article")
   @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_AUTHOR')")
+  @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> hideArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
     articleService.hideArticle(id, userModel);
@@ -182,7 +182,7 @@ public class ArticleController {
   @PatchMapping("/{id}/block")
   @Operation(summary = "Block the article")
   @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> blockArticle(@PathVariable Long id) {
     articleService.blockArticle(id);
     return ResponseEntity.noContent().build();
@@ -191,7 +191,7 @@ public class ArticleController {
   @PatchMapping("/{id}/unblock")
   @Operation(summary = "Unblock the article")
   @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_ADMIN')")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> unblockArticle(@PathVariable Long id) {
     articleService.unblockArticle(id);
     return ResponseEntity.noContent().build();
