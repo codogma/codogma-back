@@ -243,8 +243,10 @@ public class ArticleService {
     List<Long> compilationIds = draftArticle.getCompilationIds();
     if (compilationIds != null && !compilationIds.isEmpty()) {
       List<CompilationModel> compilations = new ArrayList<>(
-          compilationRepository.findAllById(compilationIds));
-      articleModel.setCompilations(compilations);
+          compilationRepository.findAllByIdInAndUser(compilationIds, userModel));
+      if (!compilations.isEmpty()) {
+        articleModel.setCompilations(compilations);
+      }
     }
     List<String> tags = draftArticle.getTags();
     if (tags != null && !tags.isEmpty()) {
@@ -342,8 +344,10 @@ public class ArticleService {
     List<Long> compilationIds = updateArticle.getCompilationIds();
     if (compilationIds != null && !compilationIds.isEmpty()) {
       List<CompilationModel> compilations = new ArrayList<>(
-          compilationRepository.findAllById(compilationIds));
-      articleModel.setCompilations(compilations);
+          compilationRepository.findAllByIdInAndUser(compilationIds, userModel));
+      if (!compilations.isEmpty()) {
+        articleModel.setCompilations(compilations);
+      }
     }
     List<String> tags = updateArticle.getTags();
     List<TagModel> tagModels = new ArrayList<>();
@@ -379,8 +383,7 @@ public class ArticleService {
     List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
     moderators.forEach(moderator -> {
       CreateNotification createNotification = CreateNotification.builder()
-          .recipient(moderator.getUsername())
-          .entityId(articleId).title("Article moderation")
+          .recipient(moderator.getUsername()).entityId(articleId).title("Article moderation")
           .message("The article submitted for moderation").type(NotificationType.ARTICLE_MODERATION)
           .build();
       notificationService.createNotification(createNotification);
