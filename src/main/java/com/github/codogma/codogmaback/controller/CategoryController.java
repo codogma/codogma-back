@@ -40,7 +40,7 @@ public class CategoryController {
   private final CategoryService categoryService;
 
   @GetMapping
-  @Operation(summary = "Get all categories")
+  @Operation(summary = "Get filtered categories")
   @Parameters({@Parameter(name = "tag", description = "Tag to filter categories"),
       @Parameter(name = "info", description = "Information to filter categories"),
       @Parameter(name = "isFavorite", description = "Get user's favorite categories"),

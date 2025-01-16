@@ -4,6 +4,7 @@ import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
 
 import com.github.codogma.codogmaback.dto.CompilationsDTO;
 import com.github.codogma.codogmaback.dto.CreateDraftArticle;
+import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.GetCategory;
 import com.github.codogma.codogmaback.dto.GetCompilation;
@@ -17,6 +18,7 @@ import com.github.codogma.codogmaback.model.ArticleView;
 import com.github.codogma.codogmaback.model.CategoryModel;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.Language;
+import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.Status;
 import com.github.codogma.codogmaback.model.TagModel;
@@ -64,6 +66,7 @@ public class ArticleService {
   private final TagRepository tagRepository;
   private final CompilationRepository compilationRepository;
   private final LocalizationContext localizationContext;
+  private final NotificationService notificationService;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -373,6 +376,11 @@ public class ArticleService {
     articleModel.setTags(tagModels);
     articleModel.setUser(userModel);
     articleRepository.save(articleModel);
+    CreateNotification createNotification = CreateNotification.builder().recipient("admin")
+        .entityId(articleId).title("Article moderation")
+        .message("The article submitted for moderation").type(NotificationType.ARTICLE_MODERATION)
+        .build();
+    notificationService.createNotification(createNotification);
   }
 
   @Transactional
