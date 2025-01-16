@@ -67,8 +67,8 @@ public class CompilationService {
   }
 
   @Transactional
-  public List<GetCompilation> getCompilationsByTitle(String name) {
-    return compilationRepository.findTop10ByTitleStartingWithIgnoreCase(name).stream()
+  public List<GetCompilation> getCompilationsByTitle(String name, UserModel user) {
+    return compilationRepository.findTop10ByTitleStartingWithIgnoreCaseAndUser(name, user).stream()
         .map(this::convertCompilationToDTO).toList();
   }
 

@@ -65,8 +65,10 @@ public class CompilationController {
 
   @GetMapping("/list-by-title")
   @Operation(summary = "Get compilations by title")
-  public ResponseEntity<List<GetCompilation>> getCompilationsByTitle(@RequestParam String title) {
-    List<GetCompilation> compilations = compilationService.getCompilationsByTitle(title);
+  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
+  public ResponseEntity<List<GetCompilation>> getCompilationsByTitle(@RequestParam String title,
+      @AuthenticationPrincipal UserModel userModel) {
+    List<GetCompilation> compilations = compilationService.getCompilationsByTitle(title, userModel);
     return ResponseEntity.ok(compilations);
   }
 

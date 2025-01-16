@@ -1,6 +1,8 @@
 package com.github.codogma.codogmaback.repository;
 
 import com.github.codogma.codogmaback.model.CompilationModel;
+import com.github.codogma.codogmaback.model.UserModel;
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -12,5 +14,7 @@ public interface CompilationRepository extends JpaRepository<CompilationModel, L
 
   boolean existsByArticles_Id(Long id);
 
-  List<CompilationModel> findTop10ByTitleStartingWithIgnoreCase(String name);
+  List<CompilationModel> findTop10ByTitleStartingWithIgnoreCaseAndUser(String name, UserModel user);
+
+  List<CompilationModel> findAllByIdInAndUser(Collection<Long> id, UserModel user);
 }
