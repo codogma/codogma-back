@@ -376,11 +376,15 @@ public class ArticleService {
     articleModel.setTags(tagModels);
     articleModel.setUser(userModel);
     articleRepository.save(articleModel);
-    CreateNotification createNotification = CreateNotification.builder().recipient("admin")
-        .entityId(articleId).title("Article moderation")
-        .message("The article submitted for moderation").type(NotificationType.ARTICLE_MODERATION)
-        .build();
-    notificationService.createNotification(createNotification);
+    List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
+    moderators.forEach(moderator -> {
+      CreateNotification createNotification = CreateNotification.builder()
+          .recipient(moderator.getUsername())
+          .entityId(articleId).title("Article moderation")
+          .message("The article submitted for moderation").type(NotificationType.ARTICLE_MODERATION)
+          .build();
+      notificationService.createNotification(createNotification);
+    });
   }
 
   @Transactional
