@@ -98,11 +98,18 @@ public class ArticleController {
     return ResponseEntity.ok(article);
   }
 
+  @PostMapping("/{id}/like")
+  @Operation(summary = "Like the article by id")
+  public ResponseEntity<?> likeArticle(@PathVariable Long id,
+      @AuthenticationPrincipal UserModel userModel) {
+    articleService.toggleLike(id, userModel);
+    return ResponseEntity.ok("Like toggled successfully");
+  }
+
   @PostMapping("/{id}/record-view")
   @Operation(summary = "Record article view")
   public ResponseEntity<GetArticle> recordView(@PathVariable Long id,
-      @AuthenticationPrincipal UserModel userModel,
-      HttpServletRequest request) {
+      @AuthenticationPrincipal UserModel userModel, HttpServletRequest request) {
     String ipAddress = request.getRemoteAddr();
     String userAgent = request.getHeader("User-Agent");
     log.info("IP address: {}, User-Agent: {}", ipAddress, userAgent);

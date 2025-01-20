@@ -25,8 +25,8 @@ import org.hibernate.annotations.CreationTimestamp;
 public class BookmarkModel {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(nullable = false)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
