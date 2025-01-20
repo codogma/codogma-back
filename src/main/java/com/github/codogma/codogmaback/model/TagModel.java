@@ -27,8 +27,8 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 public class TagModel {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(nullable = false)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @Column(nullable = false, unique = true)
   @FullTextField(name = "name", analyzer = "standard")

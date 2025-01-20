@@ -47,7 +47,6 @@ public class NotificationService {
   @Transactional
   public void createNotification(CreateNotification createNotification) {
     NotificationModel notification = NotificationModel.builder()
-        .recipient(createNotification.getRecipient()).entityId(createNotification.getEntityId())
         .title(createNotification.getTitle()).message(createNotification.getMessage())
         .type(createNotification.getType()).isRead(false).build();
     notificationRepository.save(notification);
@@ -87,7 +86,8 @@ public class NotificationService {
 
   private GetNotification convertNotificationModelToDTO(NotificationModel notificationModel) {
     return GetNotification.builder().id(notificationModel.getId())
-        .entityId(notificationModel.getEntityId()).title(notificationModel.getTitle())
-        .message(notificationModel.getMessage()).isRead(notificationModel.isRead()).build();
+        .articleId(notificationModel.getArticleId()).commentId(notificationModel.getCommentId())
+        .title(notificationModel.getTitle()).message(notificationModel.getMessage())
+        .type(notificationModel.getType()).isRead(notificationModel.isRead()).build();
   }
 }

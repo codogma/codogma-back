@@ -28,6 +28,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 public class ArticleView {
 
   @Id
+  @Column(nullable = false)
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @JoinColumn(name = "user_id", nullable = false)

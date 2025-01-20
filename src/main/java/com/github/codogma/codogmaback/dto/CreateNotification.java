@@ -16,10 +16,6 @@ import lombok.NoArgsConstructor;
 @Schema(name = "Create Notification")
 public class CreateNotification {
 
-  @Schema(description = "Recipient of the notification", example = "user")
-  private String recipient;
-  @Schema(description = "Entity Id of the notification", example = "1")
-  private Long entityId;
   @NotNull(message = "Title cannot be empty")
   @Schema(description = "Title of the notification", example = "Warning", requiredMode = RequiredMode.REQUIRED)
   private String title;

@@ -23,8 +23,8 @@ import lombok.NoArgsConstructor;
 public class ConfirmationToken {
 
   @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(nullable = false)
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @Column(nullable = false, unique = true)
   private String token;

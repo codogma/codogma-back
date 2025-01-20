@@ -51,6 +51,8 @@ public class ArticleModel {
   @FullTextField
   @Enumerated(EnumType.STRING)
   private Language language;
+  @Column(nullable = false)
+  private Integer likeCount;
   private Long originalArticleId;
   @FullTextField
   @Column(nullable = false)

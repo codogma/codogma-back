@@ -31,11 +31,11 @@ import org.hibernate.annotations.CreationTimestamp;
 public class CommentModel {
 
   @Id
+  @Column(nullable = false)
   @GeneratedValue(strategy = GenerationType.IDENTITY)
-  @Column(nullable = false)
   private Long id;
-  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
   private Status status;
   @Column(nullable = false, columnDefinition = "TEXT")
   private String content;

@@ -4,7 +4,6 @@ import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
 
 import com.github.codogma.codogmaback.dto.CompilationsDTO;
 import com.github.codogma.codogmaback.dto.CreateDraftArticle;
-import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.GetCategory;
 import com.github.codogma.codogmaback.dto.GetCompilation;
@@ -18,6 +17,8 @@ import com.github.codogma.codogmaback.model.ArticleView;
 import com.github.codogma.codogmaback.model.CategoryModel;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.Language;
+import com.github.codogma.codogmaback.model.LikeModel;
+import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.Status;
@@ -27,6 +28,8 @@ import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.ArticleViewRepository;
 import com.github.codogma.codogmaback.repository.CategoryRepository;
 import com.github.codogma.codogmaback.repository.CompilationRepository;
+import com.github.codogma.codogmaback.repository.LikeRepository;
+import com.github.codogma.codogmaback.repository.NotificationRepository;
 import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
@@ -36,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,12 +65,13 @@ public class ArticleService {
   private final ExceptionFactory exceptionFactory;
   private final UserRepository userRepository;
   private final ArticleRepository articleRepository;
+  private final LikeRepository likeRepository;
   private final ArticleViewRepository articleViewRepository;
   private final CategoryRepository categoryRepository;
   private final TagRepository tagRepository;
   private final CompilationRepository compilationRepository;
   private final LocalizationContext localizationContext;
-  private final NotificationService notificationService;
+  private final NotificationRepository notificationRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -143,6 +148,22 @@ public class ArticleService {
   }
 
   @Transactional
+  public void toggleLike(Long articleId, UserModel userModel) {
+    ArticleModel article = articleRepository.findById(articleId)
+        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
+    Optional<LikeModel> existingLike = likeRepository.findByArticleAndUser(article, userModel);
+    if (existingLike.isPresent()) {
+      likeRepository.delete(existingLike.get());
+      article.setLikeCount(article.getLikeCount() - 1);
+    } else {
+      LikeModel like = LikeModel.builder().article(article).user(userModel).build();
+      likeRepository.save(like);
+      article.setLikeCount(article.getLikeCount() + 1);
+    }
+    articleRepository.save(article);
+  }
+
+  @Transactional
   public GetArticle recordView(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -199,7 +220,7 @@ public class ArticleService {
   @Transactional
   public GetArticle createDraftArticle(CreateDraftArticle draftArticle, UserModel userModel) {
     ArticleModel articleModel = ArticleModel.builder().user(userModel)
-        .title(draftArticle.getTitle()).content(draftArticle.getContent()).build();
+        .title(draftArticle.getTitle()).content(draftArticle.getContent()).likeCount(0).build();
     ArticleModel savedArticle = articleRepository.save(articleModel);
     return convertArticleModelToDTO(savedArticle);
   }
@@ -382,11 +403,11 @@ public class ArticleService {
     articleRepository.save(articleModel);
     List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
     moderators.forEach(moderator -> {
-      CreateNotification createNotification = CreateNotification.builder()
-          .recipient(moderator.getUsername()).entityId(articleId).title("Article moderation")
+      NotificationModel notification = NotificationModel.builder()
+          .recipient(moderator.getUsername()).articleId(articleId).title("Article moderation")
           .message("The article submitted for moderation").type(NotificationType.ARTICLE_MODERATION)
-          .build();
-      notificationService.createNotification(createNotification);
+          .isRead(false).build();
+      notificationRepository.save(notification);
     });
   }
 
