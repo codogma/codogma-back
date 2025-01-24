@@ -25,12 +25,16 @@ public class GetArticle {
   private Status status;
   @Schema(description = "Language of the article")
   private Language language;
+  @Schema(description = "Count of likes of the article", example = "10")
+  private Integer likeCount;
   @Schema(description = "Original article")
   private GetArticle originalArticle;
   @Schema(description = "Check to see if the article is in the compilation")
   private Boolean isCompilated;
   @Schema(description = "Count of compilations of the article", example = "10")
   private Integer compilationsCount;
+  @Schema(description = "Count of comments of the article", example = "10")
+  private Integer commentsCount;
   @Schema(description = "Title of the article", example = "My First Blog Article")
   private String title;
   @Schema(description = "Preview content of the article", example = "This is the preview content of the article")

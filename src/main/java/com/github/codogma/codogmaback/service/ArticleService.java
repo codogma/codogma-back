@@ -440,9 +440,9 @@ public class ArticleService {
     boolean compilationExists = compilationRepository.existsByArticles_Id(articleModel.getId());
     Language interfaceLanguage = localizationContext.getLocale();
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
-        .language(articleModel.getLanguage()).originalArticle(
-            originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
-                .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
+        .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
+        .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
+            .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
         .isCompilated(compilationExists).previewContent(articleModel.getPreviewContent())
         .content(articleModel.getContent()).username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())
@@ -456,6 +456,7 @@ public class ArticleService {
             articleModel.getTags().stream().map(
                     tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
                 .toList()).compilationsCount(articleModel.getCompilations().size())
-        .createdAt(articleModel.getCreatedAt()).updatedAt(articleModel.getUpdatedAt()).build();
+        .commentsCount(articleModel.getComments().size()).createdAt(articleModel.getCreatedAt())
+        .updatedAt(articleModel.getUpdatedAt()).build();
   }
 }
