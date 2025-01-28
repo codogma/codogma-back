@@ -16,7 +16,7 @@ public class CustomLocaleResolver implements LocaleResolver {
 
   @Override
   public Locale resolveLocale(HttpServletRequest request) {
-    Language localeCode = localizationContext.getLocale();
+    Language localeCode = localizationContext.getLanguage();
     if (localeCode == null) {
       return Locale.ENGLISH;
     }

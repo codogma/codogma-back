@@ -34,6 +34,7 @@ import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
 import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpecifications;
+import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
 import java.util.List;
@@ -71,6 +72,8 @@ public class ArticleService {
   private final TagRepository tagRepository;
   private final CompilationRepository compilationRepository;
   private final LocalizationContext localizationContext;
+  private final LocalizationUtil localizationUtil;
+  private final NotificationService notificationService;
   private final NotificationRepository notificationRepository;
 
   @Value("${search.results.limit}")
@@ -404,9 +407,10 @@ public class ArticleService {
     List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
     moderators.forEach(moderator -> {
       NotificationModel notification = NotificationModel.builder()
-          .recipient(moderator.getUsername()).articleId(articleId).title("Article moderation")
-          .message("The article submitted for moderation").type(NotificationType.ARTICLE_MODERATION)
-          .isRead(false).build();
+          .recipient(moderator.getUsername()).articleId(articleId)
+          .title(localizationUtil.getLocalizedField("notification.article.moderation.title"))
+          .message(localizationUtil.getLocalizedField("notification.article.moderation.message"))
+          .type(NotificationType.ARTICLE_MODERATION).isRead(false).build();
       notificationRepository.save(notification);
     });
   }
@@ -438,7 +442,8 @@ public class ArticleService {
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
     boolean compilationExists = compilationRepository.existsByArticles_Id(articleModel.getId());
-    Language interfaceLanguage = localizationContext.getLocale();
+    Language interfaceLanguage = localizationContext.getLanguage();
+    int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
         .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
         .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
@@ -456,7 +461,7 @@ public class ArticleService {
             articleModel.getTags().stream().map(
                     tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
                 .toList()).compilationsCount(articleModel.getCompilations().size())
-        .commentsCount(articleModel.getComments().size()).createdAt(articleModel.getCreatedAt())
+        .commentsCount(commentsCount).createdAt(articleModel.getCreatedAt())
         .updatedAt(articleModel.getUpdatedAt()).build();
   }
 }

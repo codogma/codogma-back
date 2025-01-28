@@ -34,7 +34,7 @@ public class GetArticle {
   @Schema(description = "Count of compilations of the article", example = "10")
   private Integer compilationsCount;
   @Schema(description = "Count of comments of the article", example = "10")
-  private Integer commentsCount;
+  private Integer commentsCount = 0;
   @Schema(description = "Title of the article", example = "My First Blog Article")
   private String title;
   @Schema(description = "Preview content of the article", example = "This is the preview content of the article")

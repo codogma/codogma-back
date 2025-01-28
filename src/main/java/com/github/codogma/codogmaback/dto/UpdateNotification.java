@@ -4,7 +4,6 @@ import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.NotificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
-import jakarta.validation.constraints.NotNull;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -16,14 +15,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "Create Notification")
-public class CreateNotification {
+@Schema(name = "Update Notification")
+public class UpdateNotification {
 
-  @NotNull(message = "Title cannot be empty")
-  @Schema(description = "Title of the notification", example = "{ \"en\": \"System Update\", \"ru\": \"Системное обновление\" }", requiredMode = RequiredMode.REQUIRED)
+  @Schema(description = "Title of the notification", example = "{ \"en\": \"System Update\", \"ru\": \"Системное обновление\" }")
   private Map<Language, String> title = new HashMap<>();
-  @NotNull(message = "Message cannot be empty")
-  @Schema(description = "Message of the notification", example = "{ \"en\": \"The system will be updated at 2 AM.\", \"ru\": \"Система будет обновлена в 2 часа ночи.\" }", requiredMode = RequiredMode.REQUIRED)
+  @Schema(description = "Message of the notification", example = "{ \"en\": \"The system will be updated at 2 AM.\", \"ru\": \"Система будет обновлена в 2 часа ночи.\" }")
   private Map<Language, String> message = new HashMap<>();
   @Schema(description = "Notification type of the notification", example = "SYSTEM", requiredMode = RequiredMode.REQUIRED)
   private NotificationType type;

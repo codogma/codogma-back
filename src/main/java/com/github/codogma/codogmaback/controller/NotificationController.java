@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.controller;
 
 import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetNotification;
+import com.github.codogma.codogmaback.dto.UpdateNotification;
 import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.NotificationService;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -68,6 +70,16 @@ public class NotificationController {
       @Valid @RequestBody CreateNotification createNotification) {
     createNotification.setType(NotificationType.SYSTEM);
     notificationService.createNotification(createNotification);
+    return ResponseEntity.noContent().build();
+  }
+
+  @PutMapping(value = "/{id}")
+  @Operation(summary = "Create system notification")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+  public ResponseEntity<Void> updateSystemNotification(@PathVariable Long id,
+      @Valid @RequestBody UpdateNotification updateNotification) {
+    updateNotification.setType(NotificationType.SYSTEM);
+    notificationService.updateNotification(id, updateNotification);
     return ResponseEntity.noContent().build();
   }
 
