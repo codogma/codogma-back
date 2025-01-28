@@ -2,15 +2,20 @@ package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetNotification;
+import com.github.codogma.codogmaback.dto.UpdateNotification;
+import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.repository.NotificationRepository;
 import com.github.codogma.codogmaback.repository.specifications.NotificationSpecifications;
+import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.transaction.Transactional;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +29,9 @@ import org.springframework.stereotype.Service;
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
+  private final MessageSource messageSource;
+  private final LocalizationContext localizationContext;
+  private final LocalizationUtil localizationUtil;
 
   @Transactional
   public Page<GetNotification> getNotifications(String order, String sort, int page, int size,
@@ -49,6 +57,17 @@ public class NotificationService {
     NotificationModel notification = NotificationModel.builder()
         .title(createNotification.getTitle()).message(createNotification.getMessage())
         .type(createNotification.getType()).isRead(false).build();
+    notificationRepository.save(notification);
+  }
+
+  @Transactional
+  public void updateNotification(Long notificationId, UpdateNotification updateNotification) {
+    NotificationModel notification = notificationRepository.findById(notificationId)
+        .orElseThrow(() -> new RuntimeException("Notification not found"));
+    Optional.ofNullable(updateNotification.getTitle()).ifPresent(notification::setTitle);
+    Optional.ofNullable(updateNotification.getMessage()).ifPresent(notification::setMessage);
+    notification.setType(updateNotification.getType());
+    notification.setRead(false);
     notificationRepository.save(notification);
   }
 
@@ -84,10 +103,13 @@ public class NotificationService {
     notificationRepository.deleteByType(NotificationType.SYSTEM);
   }
 
-  private GetNotification convertNotificationModelToDTO(NotificationModel notificationModel) {
-    return GetNotification.builder().id(notificationModel.getId())
-        .articleId(notificationModel.getArticleId()).commentId(notificationModel.getCommentId())
-        .title(notificationModel.getTitle()).message(notificationModel.getMessage())
-        .type(notificationModel.getType()).isRead(notificationModel.isRead()).build();
+  private GetNotification convertNotificationModelToDTO(NotificationModel notification) {
+    String localizedNotificationTitle = localizationUtil.getLocalizedValue(notification.getTitle());
+    String localizedNotificationMessage = localizationUtil.getLocalizedValue(
+        notification.getMessage());
+    return GetNotification.builder().id(notification.getId()).articleId(notification.getArticleId())
+        .commentId(notification.getCommentId()).title(localizedNotificationTitle)
+        .message(localizedNotificationMessage).type(notification.getType())
+        .isRead(notification.isRead()).build();
   }
 }

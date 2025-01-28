@@ -162,7 +162,7 @@ public class UserService {
   private GetUser convertUserModelToDto(UserModel targetUser, UserModel subscriber) {
     List<CategoryModel> categories = categoryRepository.findCategoriesByUserId(targetUser.getId());
     boolean isSubscribed = subscriptionRepository.existsBySubscriberAndUser(subscriber, targetUser);
-    Language interfaceLanguage = localizationContext.getLocale();
+    Language interfaceLanguage = localizationContext.getLanguage();
     return GetUser.builder().username(targetUser.getUsername()).isSubscribed(isSubscribed)
         .email(targetUser.getEmail()).firstName(targetUser.getFirstName())
         .lastName(targetUser.getLastName()).shortInfo(targetUser.getShortInfo())

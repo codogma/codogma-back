@@ -10,12 +10,12 @@ public class LocalizationContext {
   private static final ThreadLocal<Language> localeHolder = new ThreadLocal<>();
   private static final ThreadLocal<List<Language>> supportedLanguagesHolder = new ThreadLocal<>();
 
-  public Language getLocale() {
+  public Language getLanguage() {
     return localeHolder.get();
   }
 
-  public void setLocale(Language locale) {
-    localeHolder.set(locale);
+  public void setLanguage(Language language) {
+    localeHolder.set(language);
   }
 
   public List<Language> getSupportedLanguages() {

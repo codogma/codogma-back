@@ -19,11 +19,11 @@ import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.CategorySpecifications;
 import com.github.codogma.codogmaback.util.FileUploadUtil;
+import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +36,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
@@ -51,6 +50,7 @@ public class CategoryService {
   private final TagRepository tagRepository;
   private final FileUploadUtil fileUploadUtil;
   private final LocalizationContext localizationContext;
+  private final LocalizationUtil localizationUtil;
   private final FavoriteRepository favoriteRepository;
 
   @Value("${search.results.limit}")
@@ -78,7 +78,7 @@ public class CategoryService {
 
   @Transactional
   public List<GetCategory> getCategoriesByNameContaining(String name) {
-    Language interfaceLanguage = localizationContext.getLocale();
+    Language interfaceLanguage = localizationContext.getLanguage();
     return categoryRepository.findTop10ByNameStartingWithIgnoreCase(interfaceLanguage.name(), name)
         .stream().map(this::convertCategoryToDTO).toList();
   }
@@ -140,7 +140,7 @@ public class CategoryService {
   }
 
   private void setLocalizedCategoryFields(CategoryModel category, String name, String description) {
-    Language language = localizationContext.getLocale();
+    Language language = localizationContext.getLanguage();
     Optional.ofNullable(name).ifPresent(n -> category.getName().put(language, n));
     Optional.ofNullable(description).ifPresent(d -> category.getDescription().put(language, d));
   }
@@ -154,32 +154,19 @@ public class CategoryService {
 
   private GetCategory convertCategoryToDTO(CategoryModel category, UserModel userModel) {
     List<TagModel> topTags = tagRepository.findTop10TagsByCategoryId(category.getId());
-    boolean existsed = favoriteRepository.existsByUserAndCategory(userModel, category);
-    Language interfaceLanguage = localizationContext.getLocale();
-    String localizedCategoryName = getLocalizedValue(category.getName(), interfaceLanguage);
-    String localizedCategoryDescription = getLocalizedValue(category.getDescription(),
-        interfaceLanguage);
+    boolean existed = favoriteRepository.existsByUserAndCategory(userModel, category);
+    String localizedCategoryName = localizationUtil.getLocalizedValue(category.getName());
+    String localizedCategoryDescription = localizationUtil.getLocalizedValue(
+        category.getDescription());
     return GetCategory.builder().id(category.getId()).name(localizedCategoryName)
-        .isFavorite(existsed).description(localizedCategoryDescription)
+        .isFavorite(existed).description(localizedCategoryDescription)
         .imageUrl(category.getImageUrl()).tags(topTags.stream()
             .map(tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
             .toList()).build();
   }
 
   private GetCategory convertCategoryToDTO(CategoryModel category) {
-    Language interfaceLanguage = localizationContext.getLocale();
-    String localizedCategoryName = getLocalizedValue(category.getName(), interfaceLanguage);
+    String localizedCategoryName = localizationUtil.getLocalizedValue(category.getName());
     return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
-  }
-
-  private String getLocalizedValue(Map<Language, String> values, Language preferredLanguage) {
-    if (values.containsKey(preferredLanguage) && StringUtils.hasText(
-        values.get(preferredLanguage))) {
-      return values.get(preferredLanguage);
-    }
-    if (values.containsKey(Language.EN) && StringUtils.hasText(values.get(preferredLanguage))) {
-      return values.get(Language.EN);
-    }
-    return values.values().stream().filter(StringUtils::hasText).findFirst().orElse(null);
   }
 }

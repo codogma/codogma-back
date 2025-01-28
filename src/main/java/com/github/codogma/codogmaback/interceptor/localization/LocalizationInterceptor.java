@@ -35,7 +35,7 @@ public class LocalizationInterceptor implements HandlerInterceptor {
           return Language.EN;
         });
 
-    localizationContext.setLocale(intl);
+    localizationContext.setLanguage(intl);
 
     String contlCookie = Arrays.stream(
             Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
