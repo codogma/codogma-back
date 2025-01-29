@@ -25,12 +25,12 @@ public class FileUploadUtil {
   @Value("${server.servlet.context-path}")
   private String contextPath;
 
-  public String uploadUserAvatar(MultipartFile file, Long userId) {
+  public String uploadUserAvatar(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new IllegalArgumentException("File is empty or null");
     }
 
-    String filename = "user-" + userId + "-avatar-" + UUID.randomUUID() + getFileExtension(file);
+    String filename = "user-avatar-" + UUID.randomUUID() + getFileExtension(file);
     saveFile(file, avatarUploadDir, filename);
     return String.format("%s/users/avatars/%s", contextPath, filename);
   }
@@ -45,24 +45,22 @@ public class FileUploadUtil {
     return String.format("%s/articles/images/%s", contextPath, filename);
   }
 
-  public String uploadCategoryAvatar(MultipartFile file, Long categoryId) {
+  public String uploadCategoryAvatar(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new IllegalArgumentException("File is empty or null");
     }
 
-    String filename =
-        "category-" + categoryId + "-image-" + UUID.randomUUID() + getFileExtension(file);
+    String filename = "category-image-" + UUID.randomUUID() + getFileExtension(file);
     saveFile(file, categoryImageUploadDir, filename);
     return String.format("%s/categories/images/%s", contextPath, filename);
   }
 
-  public String uploadCompilationAvatar(MultipartFile file, Long compilationId) {
+  public String uploadCompilationAvatar(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new IllegalArgumentException("File is empty or null");
     }
 
-    String filename =
-        "compilation-" + compilationId + "-image-" + UUID.randomUUID() + getFileExtension(file);
+    String filename = "compilation-image-" + UUID.randomUUID() + getFileExtension(file);
     saveFile(file, compilationImageUploadDir, filename);
     return String.format("%s/compilations/images/%s", contextPath, filename);
   }

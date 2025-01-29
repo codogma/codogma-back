@@ -121,10 +121,8 @@ public class UserService {
             localizationUtil.getMessage("user.password.incorrect"));
       }
     }
-    if (updateUser.getAvatar() != null && !updateUser.getAvatar().isEmpty()) {
-      String avatarUrl = fileUploadUtil.uploadUserAvatar(updateUser.getAvatar(), userModel.getId());
-      userModel.setAvatarUrl(avatarUrl);
-    }
+    Optional.ofNullable(updateUser.getAvatar()).filter(image -> !image.isEmpty())
+        .map(fileUploadUtil::uploadUserAvatar).ifPresent(userModel::setAvatarUrl);
     return convertUserModelToDto(userRepository.save(userModel), null);
   }
 

@@ -5,7 +5,6 @@ import com.github.codogma.codogmaback.model.NotificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import jakarta.validation.constraints.NotNull;
-import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -21,10 +20,10 @@ public class CreateNotification {
 
   @NotNull(message = "Title cannot be empty")
   @Schema(description = "Title of the notification", example = "{ \"en\": \"System Update\", \"ru\": \"Системное обновление\" }", requiredMode = RequiredMode.REQUIRED)
-  private Map<Language, String> title = new HashMap<>();
+  private Map<Language, String> title;
   @NotNull(message = "Message cannot be empty")
   @Schema(description = "Message of the notification", example = "{ \"en\": \"The system will be updated at 2 AM.\", \"ru\": \"Система будет обновлена в 2 часа ночи.\" }", requiredMode = RequiredMode.REQUIRED)
-  private Map<Language, String> message = new HashMap<>();
+  private Map<Language, String> message;
   @Schema(description = "Notification type of the notification", example = "SYSTEM", requiredMode = RequiredMode.REQUIRED)
   private NotificationType type;
 }

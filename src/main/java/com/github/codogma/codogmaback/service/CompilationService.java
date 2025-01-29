@@ -29,7 +29,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -82,9 +81,8 @@ public class CompilationService {
   public void createCompilation(CreateCompilation createCompilation, UserModel userModel) {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
-    compilation = compilationRepository.save(compilation);
-    MultipartFile image = createCompilation.getImage();
-    uploadCompilationImage(image, compilation);
+    Optional.ofNullable(createCompilation.getImage()).filter(image -> !image.isEmpty())
+        .map(fileUploadUtil::uploadCompilationAvatar).ifPresent(compilation::setImageUrl);
     compilationRepository.save(compilation);
   }
 
@@ -95,16 +93,11 @@ public class CompilationService {
     if (!userModel.getId().equals(compilation.getUser().getId())) {
       throw exceptionFactory.notAllowedToEdit(compilation.getId());
     }
-    String title = updateCompilation.getTitle();
-    if (title != null && !title.isEmpty()) {
-      compilation.setTitle(title);
-    }
-    String description = updateCompilation.getDescription();
-    if (description != null) {
-      compilation.setDescription(description);
-    }
-    MultipartFile image = updateCompilation.getImage();
-    uploadCompilationImage(image, compilation);
+    Optional.ofNullable(updateCompilation.getTitle()).filter(title -> !title.isEmpty())
+        .ifPresent(compilation::setTitle);
+    Optional.ofNullable(updateCompilation.getDescription()).ifPresent(compilation::setDescription);
+    Optional.ofNullable(updateCompilation.getImage()).filter(image -> !image.isEmpty())
+        .map(fileUploadUtil::uploadCompilationAvatar).ifPresent(compilation::setImageUrl);
     compilationRepository.save(compilation);
   }
 
@@ -139,13 +132,6 @@ public class CompilationService {
         .orElseThrow(() -> exceptionFactory.compilationNotFound(articleId));
     bookmarkRepository.deleteByUserAndCompilation(userModel, compilation);
     return convertCompilationToDTO(compilation, userModel);
-  }
-
-  private void uploadCompilationImage(MultipartFile image, CompilationModel compilation) {
-    if (image != null && !image.isEmpty()) {
-      String imageUrl = fileUploadUtil.uploadCompilationAvatar(image, compilation.getId());
-      compilation.setImageUrl(imageUrl);
-    }
   }
 
   private GetCompilation convertCompilationToDTO(CompilationModel compilation,
