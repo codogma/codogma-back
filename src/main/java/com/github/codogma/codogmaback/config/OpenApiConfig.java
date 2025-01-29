@@ -19,7 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@OpenAPIDefinition(info = @Info(title = "IT Blog API", version = "0.9.25", description = "API documentation for IT Blog", contact = @Contact(name = "Email", email = "your.email@example.com"), license = @License(name = "Apache 2.0", url = "http://springdoc.org")), tags = @Tag(name = "Oauth2 authorization", description = "API for OAuth authorization"))
+@OpenAPIDefinition(info = @Info(title = "IT Blog API", version = "0.9.26", description = "API documentation for IT Blog", contact = @Contact(name = "Email", email = "your.email@example.com"), license = @License(name = "Apache 2.0", url = "http://springdoc.org")), tags = @Tag(name = "Oauth2 authorization", description = "API for OAuth authorization"))
 @SecuritySchemes({
     @SecurityScheme(name = "bearerAuth", type = SecuritySchemeType.HTTP, scheme = "bearer", bearerFormat = "JWT", in = SecuritySchemeIn.HEADER)})
 public class OpenApiConfig {

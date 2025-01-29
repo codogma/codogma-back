@@ -11,7 +11,7 @@
   </parent>
   <groupId>com.github.codogma</groupId>
   <artifactId>codogma-back</artifactId>
-  <version>0.9.25</version>
+  <version>0.9.26</version>
   <name>codogma-back</name>
   <description>codogma-back</description>
   <properties>

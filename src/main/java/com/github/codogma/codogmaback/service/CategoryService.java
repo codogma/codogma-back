@@ -36,7 +36,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
@@ -91,11 +90,10 @@ public class CategoryService {
 
   @Transactional
   public GetCategory createCategory(CreateCategory createCategory, UserModel userModel) {
-    CategoryModel category = new CategoryModel();
-    setLocalizedCategoryFields(category, createCategory.getName(), createCategory.getDescription());
-    category = categoryRepository.save(category);
-    MultipartFile image = createCategory.getImage();
-    uploadCategoryImage(image, category);
+    CategoryModel category = CategoryModel.builder().name(createCategory.getName())
+        .description(createCategory.getDescription()).build();
+    Optional.ofNullable(createCategory.getImage()).filter(image -> !image.isEmpty())
+        .map(fileUploadUtil::uploadCategoryAvatar).ifPresent(category::setImageUrl);
     category = categoryRepository.save(category);
     return convertCategoryToDTO(category, userModel);
   }
@@ -104,9 +102,10 @@ public class CategoryService {
   public void updateCategory(Long id, UpdateCategory updateCategory) {
     CategoryModel category = categoryRepository.findById(id)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
-    setLocalizedCategoryFields(category, updateCategory.getName(), updateCategory.getDescription());
-    MultipartFile image = updateCategory.getImage();
-    uploadCategoryImage(image, category);
+    Optional.ofNullable(updateCategory.getName()).ifPresent(category::setName);
+    Optional.ofNullable(updateCategory.getDescription()).ifPresent(category::setDescription);
+    Optional.ofNullable(updateCategory.getImage()).filter(image -> !image.isEmpty())
+        .map(fileUploadUtil::uploadCategoryAvatar).ifPresent(category::setImageUrl);
     categoryRepository.save(category);
   }
 
@@ -137,19 +136,6 @@ public class CategoryService {
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     favoriteRepository.deleteByUserAndCategory(userModel, category);
     return convertCategoryToDTO(category, userModel);
-  }
-
-  private void setLocalizedCategoryFields(CategoryModel category, String name, String description) {
-    Language language = localizationContext.getLanguage();
-    Optional.ofNullable(name).ifPresent(n -> category.getName().put(language, n));
-    Optional.ofNullable(description).ifPresent(d -> category.getDescription().put(language, d));
-  }
-
-  private void uploadCategoryImage(MultipartFile image, CategoryModel category) {
-    if (image != null && !image.isEmpty()) {
-      String imageUrl = fileUploadUtil.uploadCategoryAvatar(image, category.getId());
-      category.setImageUrl(imageUrl);
-    }
   }
 
   private GetCategory convertCategoryToDTO(CategoryModel category, UserModel userModel) {
