@@ -3,6 +3,7 @@ package com.github.codogma.codogmaback.exception;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -27,6 +28,24 @@ public class GlobalExceptionHandler {
       errors.put(fieldName, errorMessage);
     });
     return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(DataIntegrityViolationException.class)
+  public ResponseEntity<Map<String, String>> handleDataIntegrityViolationException(
+      DataIntegrityViolationException ex) {
+    String message = "Data integrity violation";
+    if (ex.getCause() instanceof org.hibernate.exception.ConstraintViolationException hibernateEx) {
+      String constraintName = hibernateEx.getConstraintName();
+      String sqlMessage = hibernateEx.getSQLException().getMessage();
+      message = "Constraint violation: " + constraintName + ". " + sqlMessage;
+    }
+
+    Map<String, String> response = Map.of(
+        "error", "DATA_INTEGRITY_VIOLATION",
+        "message", message
+    );
+
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
   }
 
   @ExceptionHandler(IllegalArgumentException.class)
