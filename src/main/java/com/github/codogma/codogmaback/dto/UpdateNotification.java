@@ -1,9 +1,7 @@
 package com.github.codogma.codogmaback.dto;
 
 import com.github.codogma.codogmaback.model.Language;
-import com.github.codogma.codogmaback.model.NotificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -22,6 +20,4 @@ public class UpdateNotification {
   private Map<Language, String> title = new HashMap<>();
   @Schema(description = "Message of the notification", example = "{ \"en\": \"The system will be updated at 2 AM.\", \"ru\": \"Система будет обновлена в 2 часа ночи.\" }")
   private Map<Language, String> message = new HashMap<>();
-  @Schema(description = "Notification type of the notification", example = "SYSTEM", requiredMode = RequiredMode.REQUIRED)
-  private NotificationType type;
 }

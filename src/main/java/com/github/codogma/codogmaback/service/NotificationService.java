@@ -56,7 +56,7 @@ public class NotificationService {
   public void createNotification(CreateNotification createNotification) {
     NotificationModel notification = NotificationModel.builder()
         .title(createNotification.getTitle()).message(createNotification.getMessage())
-        .type(createNotification.getType()).isRead(false).build();
+        .type(NotificationType.SYSTEM).isRead(false).build();
     notificationRepository.save(notification);
   }
 
@@ -66,7 +66,7 @@ public class NotificationService {
         .orElseThrow(() -> new RuntimeException("Notification not found"));
     Optional.ofNullable(updateNotification.getTitle()).ifPresent(notification::setTitle);
     Optional.ofNullable(updateNotification.getMessage()).ifPresent(notification::setMessage);
-    notification.setType(updateNotification.getType());
+    notification.setType(NotificationType.SYSTEM);
     notification.setRead(false);
     notificationRepository.save(notification);
   }
