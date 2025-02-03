@@ -3,7 +3,6 @@ package com.github.codogma.codogmaback.controller;
 import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetNotification;
 import com.github.codogma.codogmaback.dto.UpdateNotification;
-import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -68,7 +67,6 @@ public class NotificationController {
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> createSystemNotification(
       @Valid @RequestBody CreateNotification createNotification) {
-    createNotification.setType(NotificationType.SYSTEM);
     notificationService.createNotification(createNotification);
     return ResponseEntity.noContent().build();
   }
@@ -78,7 +76,6 @@ public class NotificationController {
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> updateSystemNotification(@PathVariable Long id,
       @Valid @RequestBody UpdateNotification updateNotification) {
-    updateNotification.setType(NotificationType.SYSTEM);
     notificationService.updateNotification(id, updateNotification);
     return ResponseEntity.noContent().build();
   }
