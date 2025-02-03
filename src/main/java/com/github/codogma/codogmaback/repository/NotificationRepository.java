@@ -21,6 +21,8 @@ public interface NotificationRepository extends JpaRepository<NotificationModel,
 
   void deleteByRecipientAndIsReadIsTrue(String recipient);
 
+  void deleteByRecipientAndTypeNotAndId(String recipient, NotificationType type, Long id);
+
   void deleteByTypeAndId(NotificationType type, Long id);
 
   void deleteByType(NotificationType type);

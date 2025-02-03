@@ -99,6 +99,12 @@ public class NotificationService {
   }
 
   @Transactional
+  public void deleteNotification(Long id, UserModel userModel) {
+    notificationRepository.deleteByRecipientAndTypeNotAndId(userModel.getUsername(),
+        NotificationType.SYSTEM, id);
+  }
+
+  @Transactional
   public void deleteAllSystemNotifications() {
     notificationRepository.deleteByType(NotificationType.SYSTEM);
   }

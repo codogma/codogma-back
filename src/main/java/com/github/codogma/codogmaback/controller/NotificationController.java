@@ -64,7 +64,7 @@ public class NotificationController {
   }
 
   @PostMapping
-  @Operation(summary = "Create system notification")
+  @Operation(summary = "Create the system notification")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> createSystemNotification(
       @Valid @RequestBody CreateNotification createNotification) {
@@ -74,7 +74,7 @@ public class NotificationController {
   }
 
   @PutMapping(value = "/{id}")
-  @Operation(summary = "Create system notification")
+  @Operation(summary = "Update system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> updateSystemNotification(@PathVariable Long id,
       @Valid @RequestBody UpdateNotification updateNotification) {
@@ -84,7 +84,7 @@ public class NotificationController {
   }
 
   @PatchMapping("/{id}/read")
-  @Operation(summary = "Mark the notification as read")
+  @Operation(summary = "Mark the notification as read by id")
   public ResponseEntity<GetNotification> markAsRead(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
     GetNotification readNotification = notificationService.markAsRead(id, userModel);
@@ -107,15 +107,23 @@ public class NotificationController {
   }
 
   @DeleteMapping("/{id}/delete-system")
-  @Operation(summary = "Delete system notification")
+  @Operation(summary = "Delete the system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> deleteSystemNotification(@PathVariable Long id) {
     notificationService.deleteSystemNotification(id);
     return ResponseEntity.noContent().build();
   }
 
+  @DeleteMapping("/{id}/delete")
+  @Operation(summary = "Delete the notification by id")
+  public ResponseEntity<Void> deleteNotification(@PathVariable Long id,
+      @AuthenticationPrincipal UserModel userModel) {
+    notificationService.deleteNotification(id, userModel);
+    return ResponseEntity.noContent().build();
+  }
+
   @DeleteMapping("/delete-all-system")
-  @Operation(summary = "Delete all system notification")
+  @Operation(summary = "Delete all system notifications")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> deleteSystemNotifications() {
     notificationService.deleteAllSystemNotifications();
