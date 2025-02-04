@@ -2,8 +2,8 @@ package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetNotification;
+import com.github.codogma.codogmaback.dto.GetSystemNotification;
 import com.github.codogma.codogmaback.dto.UpdateNotification;
-import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.UserModel;
@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.MessageSource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,8 +28,6 @@ import org.springframework.stereotype.Service;
 public class NotificationService {
 
   private final NotificationRepository notificationRepository;
-  private final MessageSource messageSource;
-  private final LocalizationContext localizationContext;
   private final LocalizationUtil localizationUtil;
 
   @Transactional
@@ -44,12 +41,13 @@ public class NotificationService {
   }
 
   @Transactional
-  public GetNotification getNotificationById(Long notificationId, UserModel userModel) {
+  public GetSystemNotification getSystemNotificationById(Long notificationId, UserModel userModel) {
     String username = userModel != null ? userModel.getUsername() : null;
     NotificationModel notification = notificationRepository.findByIdAndRecipientOrTypeAndId(
             notificationId, username, NotificationType.SYSTEM, notificationId)
         .orElseThrow(() -> new RuntimeException("Notification not found"));
-    return convertNotificationModelToDTO(notification);
+    return GetSystemNotification.builder().title(notification.getTitle())
+        .message(notification.getMessage()).build();
   }
 
   @Transactional

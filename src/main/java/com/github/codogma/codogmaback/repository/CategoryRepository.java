@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.repository;
 
 import com.github.codogma.codogmaback.model.CategoryModel;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -27,4 +28,10 @@ public interface CategoryRepository extends JpaRepository<CategoryModel, Long>,
       """, nativeQuery = true)
   List<CategoryModel> findTop10ByNameStartingWithIgnoreCase(@Param("language") String language,
       @Param("name") String name);
+
+  @Query("SELECT n FROM CategoryModel n " +
+      "LEFT JOIN FETCH n.name " +
+      "LEFT JOIN FETCH n.description " +
+      "WHERE n.id = :id")
+  Optional<CategoryModel> findByIdWithCollections(@Param("id") Long userId);
 }

@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.controller;
 
 import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetNotification;
+import com.github.codogma.codogmaback.dto.GetSystemNotification;
 import com.github.codogma.codogmaback.dto.UpdateNotification;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.NotificationService;
@@ -55,10 +56,11 @@ public class NotificationController {
   }
 
   @GetMapping("/{id}")
-  @Operation(summary = "Get the notification by id")
-  public ResponseEntity<GetNotification> getNotificationById(@PathVariable Long id,
+  @Operation(summary = "Get the system notification by id")
+  @PreAuthorize("hasAuthority('ROLE_ADMIN')")
+  public ResponseEntity<GetSystemNotification> getSystemNotificationById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetNotification article = notificationService.getNotificationById(id, userModel);
+    GetSystemNotification article = notificationService.getSystemNotificationById(id, userModel);
     return ResponseEntity.ok(article);
   }
 

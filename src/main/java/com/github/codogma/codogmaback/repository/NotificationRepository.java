@@ -4,6 +4,7 @@ import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,7 @@ public interface NotificationRepository extends JpaRepository<NotificationModel,
 
   Optional<NotificationModel> findByIdAndRecipient(Long id, String recipient);
 
+  @EntityGraph(attributePaths = {"title", "message"})
   Optional<NotificationModel> findByIdAndRecipientOrTypeAndId(Long id1, String recipient,
       NotificationType type, Long id2);
 

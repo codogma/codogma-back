@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.dto.CreateCategory;
 import com.github.codogma.codogmaback.dto.GetCategory;
+import com.github.codogma.codogmaback.dto.GetCategoryToUpdate;
 import com.github.codogma.codogmaback.dto.GetTag;
 import com.github.codogma.codogmaback.dto.UpdateCategory;
 import com.github.codogma.codogmaback.exception.CategoryNotFoundException;
@@ -86,6 +87,14 @@ public class CategoryService {
   public Optional<GetCategory> getCategoryById(Long id, UserModel userModel) {
     return categoryRepository.findById(id)
         .map(categoryModel -> convertCategoryToDTO(categoryModel, userModel));
+  }
+
+  @Transactional
+  public Optional<GetCategoryToUpdate> getCategoryByIdToUpdate(Long id) {
+    return categoryRepository.findByIdWithCollections(id).map(
+        categoryModel -> GetCategoryToUpdate.builder().name(categoryModel.getName())
+            .imageUrl(categoryModel.getImageUrl()).description(categoryModel.getDescription())
+            .build());
   }
 
   @Transactional
