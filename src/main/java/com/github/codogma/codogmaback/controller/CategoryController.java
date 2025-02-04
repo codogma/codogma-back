@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.controller;
 
 import com.github.codogma.codogmaback.dto.CreateCategory;
 import com.github.codogma.codogmaback.dto.GetCategory;
+import com.github.codogma.codogmaback.dto.GetCategoryToUpdate;
 import com.github.codogma.codogmaback.dto.UpdateCategory;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.CategoryService;
@@ -72,6 +73,14 @@ public class CategoryController {
   public ResponseEntity<GetCategory> getCategoryById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
     return categoryService.getCategoryById(id, userModel)
+        .map(category -> new ResponseEntity<>(category, HttpStatus.OK))
+        .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+  }
+
+  @GetMapping("/{id}/to-update")
+  @Operation(summary = "Get the category by id to update")
+  public ResponseEntity<GetCategoryToUpdate> getCategoryByIdToUpdate(@PathVariable Long id) {
+    return categoryService.getCategoryByIdToUpdate(id)
         .map(category -> new ResponseEntity<>(category, HttpStatus.OK))
         .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
   }
