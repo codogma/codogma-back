@@ -161,11 +161,11 @@ public class UserService {
     List<CategoryModel> categories = categoryRepository.findCategoriesByUserId(targetUser.getId());
     boolean isSubscribed = subscriptionRepository.existsBySubscriberAndUser(subscriber, targetUser);
     Language interfaceLanguage = localizationContext.getLanguage();
-    return GetUser.builder().username(targetUser.getUsername()).isSubscribed(isSubscribed)
-        .email(targetUser.getEmail()).firstName(targetUser.getFirstName())
-        .lastName(targetUser.getLastName()).shortInfo(targetUser.getShortInfo())
-        .bio(targetUser.getBio()).avatarUrl(targetUser.getAvatarUrl())
-        .categories(categories.stream().map(category -> {
+    return GetUser.builder().id(targetUser.getId()).username(targetUser.getUsername())
+        .isSubscribed(isSubscribed).email(targetUser.getEmail())
+        .firstName(targetUser.getFirstName()).lastName(targetUser.getLastName())
+        .shortInfo(targetUser.getShortInfo()).bio(targetUser.getBio())
+        .avatarUrl(targetUser.getAvatarUrl()).categories(categories.stream().map(category -> {
           String localizedCategoryName = category.getName()
               .getOrDefault(interfaceLanguage, category.getName().get(Language.EN));
           return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
