@@ -17,6 +17,8 @@ import lombok.NoArgsConstructor;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class GetUser {
 
+  @Schema(description = "ID of the user", example = "1")
+  private Long id;
   @Schema(description = "Username of the user", example = "JohnDoe")
   private String username;
   @Schema(description = "Check if the user is subscribed")
