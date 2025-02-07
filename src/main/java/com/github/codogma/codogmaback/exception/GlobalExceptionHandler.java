@@ -1,5 +1,6 @@
 package com.github.codogma.codogmaback.exception;
 
+import com.github.codogma.codogmaback.dto.ErrorResponse;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -8,8 +9,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -40,10 +43,7 @@ public class GlobalExceptionHandler {
       message = "Constraint violation: " + constraintName + ". " + sqlMessage;
     }
 
-    Map<String, String> response = Map.of(
-        "error", "DATA_INTEGRITY_VIOLATION",
-        "message", message
-    );
+    Map<String, String> response = Map.of("error", "DATA_INTEGRITY_VIOLATION", "message", message);
 
     return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
   }
@@ -121,10 +121,21 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.FORBIDDEN);
   }
 
+  @ExceptionHandler(AuthenticationException.class)
+  public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+    log.error("Authentication exception caught", ex);
+    ErrorResponse errorResponse = ErrorResponse.builder().error("Unauthorized")
+        .message("Authentication failed. Please check your credentials.").build();
+    return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+  }
+
   @ExceptionHandler(AuthorizationDeniedException.class)
-  public ResponseEntity<String> handleAuthorizationDeniedException(
+  public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
       AuthorizationDeniedException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.FORBIDDEN);
+    log.error("Authorization denied exception caught", ex);
+    ErrorResponse errorResponse = ErrorResponse.builder().error("Forbidden")
+        .message("You do not have permission to access this resource.").build();
+    return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
   }
 
   @ExceptionHandler(TokenExpiredException.class)
@@ -181,5 +192,10 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleAllExceptions(Exception ex) {
     log.error("Unhandled exception occurred: ", ex);
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<String> handleTypeMismatch(HttpRequestMethodNotSupportedException ex) {
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
   }
 }

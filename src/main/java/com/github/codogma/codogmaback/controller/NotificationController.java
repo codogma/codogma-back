@@ -55,7 +55,7 @@ public class NotificationController {
     return ResponseEntity.ok(notifications);
   }
 
-  @GetMapping("/{id}")
+  @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<GetSystemNotification> getSystemNotificationById(@PathVariable Long id,
@@ -73,7 +73,7 @@ public class NotificationController {
     return ResponseEntity.noContent().build();
   }
 
-  @PutMapping(value = "/{id}")
+  @PutMapping(value = "/{id:\\d+}")
   @Operation(summary = "Update system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> updateSystemNotification(@PathVariable Long id,
@@ -82,7 +82,7 @@ public class NotificationController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/{id}/read")
+  @PatchMapping("/{id:\\d+}/read")
   @Operation(summary = "Mark the notification as read by id")
   public ResponseEntity<GetNotification> markAsRead(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -105,7 +105,7 @@ public class NotificationController {
     return ResponseEntity.noContent().build();
   }
 
-  @DeleteMapping("/{id}/delete-system")
+  @DeleteMapping("/{id:\\d+}/delete-system")
   @Operation(summary = "Delete the system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> deleteSystemNotification(@PathVariable Long id) {
@@ -113,7 +113,7 @@ public class NotificationController {
     return ResponseEntity.noContent().build();
   }
 
-  @DeleteMapping("/{id}/delete")
+  @DeleteMapping("/{id:\\d+}/delete")
   @Operation(summary = "Delete the notification by id")
   public ResponseEntity<Void> deleteNotification(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {

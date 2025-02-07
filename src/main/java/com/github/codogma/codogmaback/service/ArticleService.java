@@ -119,7 +119,7 @@ public class ArticleService {
   }
 
   private GetArticle preparePreview(GetArticle article) {
-    if (article.getPreviewContent().isEmpty()) {
+    if (article.getPreviewContent() != null && article.getPreviewContent().isEmpty()) {
       String previewContent = createHtmlPreview(article.getContent(), 1100);
       article.setPreviewContent(previewContent);
     } else {

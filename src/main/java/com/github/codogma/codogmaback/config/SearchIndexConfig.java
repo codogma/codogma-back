@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -33,7 +32,6 @@ public class SearchIndexConfig implements ApplicationListener<ContextRefreshedEv
 
   @Override
   @Transactional
-  @EventListener(ContextRefreshedEvent.class)
   public void onApplicationEvent(ContextRefreshedEvent event) {
     initializeSearchIndexing();
   }
