@@ -16,6 +16,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
@@ -104,6 +105,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IncorrectPasswordException.class)
   public ResponseEntity<String> handleIncorrectPasswordException(IncorrectPasswordException ex) {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler(NoResourceFoundException.class)
+  public ResponseEntity<String> handleNoResourceFoundException(NoResourceFoundException ex) {
+    log.error("NoResourceFoundException caught", ex);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(ArticleNotFoundException.class)
