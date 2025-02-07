@@ -72,7 +72,7 @@ public class CompilationController {
     return ResponseEntity.ok(compilations);
   }
 
-  @GetMapping("/{id}")
+  @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the compilation by id")
   public ResponseEntity<GetCompilation> getCompilationById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -92,7 +92,7 @@ public class CompilationController {
     return ResponseEntity.ok("Compilation created successfully");
   }
 
-  @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the compilation")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
@@ -103,7 +103,7 @@ public class CompilationController {
     return ResponseEntity.ok("Compilation updated successfully");
   }
 
-  @DeleteMapping("/{id}")
+  @DeleteMapping("/{id:\\d+}")
   @Operation(summary = "Delete the compilation")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
@@ -113,7 +113,7 @@ public class CompilationController {
     return new ResponseEntity<>("Compilation deleted successfully", HttpStatus.NO_CONTENT);
   }
 
-  @PostMapping("/{id}/bookmark")
+  @PostMapping("/{id:\\d+}/bookmark")
   @Operation(summary = "Add the compilation to bookmarks")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
@@ -123,7 +123,7 @@ public class CompilationController {
     return ResponseEntity.ok(bookmarked);
   }
 
-  @DeleteMapping("/{id}/unbookmark")
+  @DeleteMapping("/{id:\\d+}/unbookmark")
   @Operation(summary = "Delete the compilation from bookmarks")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")

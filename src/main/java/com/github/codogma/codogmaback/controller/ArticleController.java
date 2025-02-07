@@ -90,7 +90,7 @@ public class ArticleController {
     return ResponseEntity.ok(articles);
   }
 
-  @GetMapping("/{id}")
+  @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the article by id")
   public ResponseEntity<GetArticle> getArticleById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -98,7 +98,7 @@ public class ArticleController {
     return ResponseEntity.ok(article);
   }
 
-  @PostMapping("/{id}/like")
+  @PostMapping("/{id:\\d+}/like")
   @Operation(summary = "Like the article by id")
   public ResponseEntity<?> likeArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -106,7 +106,7 @@ public class ArticleController {
     return ResponseEntity.ok("Like toggled successfully");
   }
 
-  @PostMapping("/{id}/record-view")
+  @PostMapping("/{id:\\d+}/record-view")
   @Operation(summary = "Record article view")
   public ResponseEntity<GetArticle> recordView(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel, HttpServletRequest request) {
@@ -117,7 +117,7 @@ public class ArticleController {
     return ResponseEntity.ok(article);
   }
 
-  @GetMapping("/{id}/recommendations")
+  @GetMapping("/{id:\\d+}/recommendations")
   @Operation(summary = "Get the recommendations")
   public ResponseEntity<List<GetArticle>> getRecommendationsForArticle(@PathVariable Long id) {
     List<GetArticle> articles = articleService.getRecommendationsForArticle(id);
@@ -134,7 +134,7 @@ public class ArticleController {
     return ResponseEntity.ok(articles);
   }
 
-  @GetMapping("/{id}/draft")
+  @GetMapping("/{id:\\d+}/draft")
   @Operation(summary = "Get the author's drafted article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
@@ -155,7 +155,7 @@ public class ArticleController {
     return new ResponseEntity<>(article, HttpStatus.CREATED);
   }
 
-  @PatchMapping("/{id}/draft")
+  @PatchMapping("/{id:\\d+}/draft")
   @Operation(summary = "Update draft article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
@@ -166,7 +166,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/{id}/publish")
+  @PatchMapping("/{id:\\d+}/publish")
   @Operation(summary = "Publish the article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_AUTHOR')")
@@ -176,7 +176,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/{id}/hide")
+  @PatchMapping("/{id:\\d+}/hide")
   @Operation(summary = "Hide the article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
@@ -186,7 +186,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/{id}/block")
+  @PatchMapping("/{id:\\d+}/block")
   @Operation(summary = "Block the article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -195,7 +195,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PatchMapping("/{id}/unblock")
+  @PatchMapping("/{id:\\d+}/unblock")
   @Operation(summary = "Unblock the article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -204,7 +204,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PutMapping("/{id}")
+  @PutMapping("/{id:\\d+}")
   @Operation(summary = "Update the article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
@@ -214,7 +214,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @DeleteMapping("/{id}")
+  @DeleteMapping("/{id:\\d+}")
   @Operation(summary = "Delete the article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
@@ -224,7 +224,7 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
-  @PostMapping("/{id}/add-to-compilations")
+  @PostMapping("/{id:\\d+}/add-to-compilations")
   @Operation(summary = "Add the article to the compilations")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")

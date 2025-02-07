@@ -55,10 +55,8 @@ public class SecurityConfiguration {
               throw authException;
             }).accessDeniedHandler((request, response, accessDeniedException) -> {
               throw accessDeniedException;
-            })).sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-        .authenticationProvider(authenticationProvider)
+            })).authenticationProvider(authenticationProvider)
         .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
-        .authenticationProvider(authenticationProvider)
         .addFilterBefore(redirectUriFilter, OAuth2AuthorizationRequestRedirectFilter.class)
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         .addFilterBefore(exceptionHandlingFilter, ExceptionTranslationFilter.class).build();

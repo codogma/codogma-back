@@ -68,7 +68,7 @@ public class CategoryController {
     return ResponseEntity.ok(categories);
   }
 
-  @GetMapping("/{id}")
+  @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the category by id")
   public ResponseEntity<GetCategory> getCategoryById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -77,7 +77,7 @@ public class CategoryController {
         .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
   }
 
-  @GetMapping("/{id}/to-update")
+  @GetMapping("/{id:\\d+}/to-update")
   @Operation(summary = "Get the category by id to update")
   public ResponseEntity<GetCategoryToUpdate> getCategoryByIdToUpdate(@PathVariable Long id) {
     return categoryService.getCategoryByIdToUpdate(id)
@@ -96,7 +96,7 @@ public class CategoryController {
     return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
   }
 
-  @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the category")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -106,7 +106,7 @@ public class CategoryController {
     return new ResponseEntity<>("Category updated successfully", HttpStatus.OK);
   }
 
-  @DeleteMapping("/{id}")
+  @DeleteMapping("/{id:\\d+}")
   @Operation(summary = "Delete the category")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
@@ -115,7 +115,7 @@ public class CategoryController {
     return new ResponseEntity<>("Category deleted successfully", HttpStatus.NO_CONTENT);
   }
 
-  @PostMapping("/{id}/add-to-favorites")
+  @PostMapping("/{id:\\d+}/add-to-favorites")
   @Operation(summary = "Add the category to favorites")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
@@ -125,7 +125,7 @@ public class CategoryController {
     return ResponseEntity.ok(category);
   }
 
-  @DeleteMapping("/{id}/unfavorite")
+  @DeleteMapping("/{id:\\d+}/unfavorite")
   @Operation(summary = "Unfavorite the category")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
