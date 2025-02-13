@@ -20,6 +20,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -27,7 +28,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class NotificationService {
 
+  public static final String PRIVATE_NOTIFICATIONS = "/queue/notifications";
+  public static final String PUBLIC_NOTIFICATIONS = "/topic/public-notifications";
   private final NotificationRepository notificationRepository;
+  private final SimpMessagingTemplate messagingTemplate;
   private final LocalizationUtil localizationUtil;
 
   @Transactional
@@ -55,7 +59,7 @@ public class NotificationService {
     NotificationModel notification = NotificationModel.builder()
         .title(createNotification.getTitle()).message(createNotification.getMessage())
         .type(NotificationType.SYSTEM).isRead(false).build();
-    notificationRepository.save(notification);
+    saveAndSendToPublic(notification);
   }
 
   @Transactional
@@ -66,7 +70,7 @@ public class NotificationService {
     Optional.ofNullable(updateNotification.getMessage()).ifPresent(notification::setMessage);
     notification.setType(NotificationType.SYSTEM);
     notification.setRead(false);
-    notificationRepository.save(notification);
+    saveAndSendToPublic(notification);
   }
 
   @Transactional
@@ -94,6 +98,9 @@ public class NotificationService {
   @Transactional
   public void deleteSystemNotification(Long id) {
     notificationRepository.deleteByTypeAndId(NotificationType.SYSTEM, id);
+    GetNotification payload = GetNotification.builder().id(id).title("delete")
+        .message("The system notification deleted").build();
+    messagingTemplate.convertAndSend(PUBLIC_NOTIFICATIONS, payload);
   }
 
   @Transactional
@@ -105,9 +112,26 @@ public class NotificationService {
   @Transactional
   public void deleteAllSystemNotifications() {
     notificationRepository.deleteByType(NotificationType.SYSTEM);
+    GetNotification payload = GetNotification.builder().title("delete")
+        .message("All system notifications deleted").build();
+    messagingTemplate.convertAndSend(PUBLIC_NOTIFICATIONS, payload);
   }
 
-  private GetNotification convertNotificationModelToDTO(NotificationModel notification) {
+  @Transactional
+  public void saveAndSendToPrivate(String username, NotificationModel notification) {
+    notificationRepository.save(notification);
+    GetNotification payload = convertNotificationModelToDTO(notification);
+    messagingTemplate.convertAndSendToUser(username, PRIVATE_NOTIFICATIONS, payload);
+  }
+
+  @Transactional
+  public void saveAndSendToPublic(NotificationModel notification) {
+    notificationRepository.save(notification);
+    GetNotification payload = convertNotificationModelToDTO(notification);
+    messagingTemplate.convertAndSend(PUBLIC_NOTIFICATIONS, payload);
+  }
+
+  public GetNotification convertNotificationModelToDTO(NotificationModel notification) {
     String localizedNotificationTitle = localizationUtil.getLocalizedValue(notification.getTitle());
     String localizedNotificationMessage = localizationUtil.getLocalizedValue(
         notification.getMessage());

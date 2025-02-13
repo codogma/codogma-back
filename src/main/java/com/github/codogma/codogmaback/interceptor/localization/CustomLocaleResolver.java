@@ -5,6 +5,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Locale;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.LocaleResolver;
 
@@ -14,8 +15,9 @@ public class CustomLocaleResolver implements LocaleResolver {
 
   private final LocalizationContext localizationContext;
 
+  @NonNull
   @Override
-  public Locale resolveLocale(HttpServletRequest request) {
+  public Locale resolveLocale(@NonNull HttpServletRequest request) {
     Language localeCode = localizationContext.getLanguage();
     if (localeCode == null) {
       return Locale.ENGLISH;
@@ -24,6 +26,7 @@ public class CustomLocaleResolver implements LocaleResolver {
   }
 
   @Override
-  public void setLocale(HttpServletRequest request, HttpServletResponse response, Locale locale) {
+  public void setLocale(@NonNull HttpServletRequest request, HttpServletResponse response,
+      Locale locale) {
   }
 }

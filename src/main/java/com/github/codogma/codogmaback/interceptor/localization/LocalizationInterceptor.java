@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
@@ -21,8 +22,8 @@ public class LocalizationInterceptor implements HandlerInterceptor {
   private final LocalizationContext localizationContext;
 
   @Override
-  public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
-      Object handler) {
+  public boolean preHandle(HttpServletRequest request, @NonNull HttpServletResponse response,
+      @NonNull Object handler) {
     Language intl = Arrays.stream(Optional.ofNullable(request.getCookies()).orElse(new Cookie[0]))
         .filter(cookie -> "intl".equals(cookie.getName())).map(Cookie::getValue)
         .map(Language::fromCode).filter(Objects::nonNull).findFirst().orElseGet(() -> {
@@ -50,8 +51,9 @@ public class LocalizationInterceptor implements HandlerInterceptor {
   }
 
   @Override
-  public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
-      Object handler, Exception ex) {
+  public void afterCompletion(@NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response,
+      @NonNull Object handler, Exception ex) {
     localizationContext.clear();
   }
 }

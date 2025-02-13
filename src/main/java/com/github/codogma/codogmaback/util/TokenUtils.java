@@ -3,8 +3,10 @@ package com.github.codogma.codogmaback.util;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.util.List;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 
 public class TokenUtils {
 
@@ -19,6 +21,31 @@ public class TokenUtils {
       for (Cookie cookie : cookies) {
         if ("auth-token".equals(cookie.getName())) {
           return cookie.getValue();
+        }
+      }
+    }
+    return null;
+  }
+
+  public static String extractToken(StompHeaderAccessor accessor) {
+    String token = accessor.getFirstNativeHeader("Authorization");
+    if (token != null && token.startsWith("Bearer ")) {
+      token = token.substring(7).trim();
+      if (!token.isEmpty()) {
+        return token;
+      }
+    }
+    List<String> cookieHeaders = accessor.getNativeHeader("Cookie");
+    if (cookieHeaders != null) {
+      for (String cookieHeader : cookieHeaders) {
+        String[] cookies = cookieHeader.split(";\\s*");
+        for (String cookie : cookies) {
+          if (cookie.startsWith("auth-token=")) {
+            String val = cookie.substring("auth-token=".length()).trim();
+            if (!val.isEmpty()) {
+              return val;
+            }
+          }
         }
       }
     }

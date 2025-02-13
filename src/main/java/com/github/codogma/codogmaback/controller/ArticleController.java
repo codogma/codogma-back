@@ -119,8 +119,9 @@ public class ArticleController {
 
   @GetMapping("/{id:\\d+}/recommendations")
   @Operation(summary = "Get the recommendations")
-  public ResponseEntity<List<GetArticle>> getRecommendationsForArticle(@PathVariable Long id) {
-    List<GetArticle> articles = articleService.getRecommendationsForArticle(id);
+  public ResponseEntity<List<GetArticle>> getRecommendationsForArticle(@PathVariable Long id,
+      @AuthenticationPrincipal UserModel userModel) {
+    List<GetArticle> articles = articleService.getRecommendationsForArticle(id, userModel);
     return ResponseEntity.ok(articles);
   }
 
@@ -229,8 +230,9 @@ public class ArticleController {
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetArticle> compilate(@PathVariable Long id,
-      @Valid @RequestBody CompilationsDTO compilations) {
-    GetArticle article = articleService.compilate(id, compilations);
+      @Valid @RequestBody CompilationsDTO compilations,
+      @AuthenticationPrincipal UserModel userModel) {
+    GetArticle article = articleService.compilate(id, compilations, userModel);
     return ResponseEntity.ok(article);
   }
 }
