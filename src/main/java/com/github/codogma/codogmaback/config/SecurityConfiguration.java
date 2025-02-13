@@ -47,6 +47,7 @@ public class SecurityConfiguration {
                     "/compilations/**", "/images/**", "/comments/**", "/tags/**",
                     "/notifications/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/articles/*/record-view").permitAll()
+                .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()).oauth2Login(
             oauth2 -> oauth2.successHandler(customOAuth2SuccessHandler).userInfoEndpoint(
                 userInfo -> userInfo.userAuthoritiesMapper(new SimpleAuthorityMapper())))

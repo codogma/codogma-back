@@ -65,8 +65,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
   @Bean
   UserDetailsService userDetailsService() {
-    return usernameOrEmail -> userRepository.findByUsername(usernameOrEmail)
-        .or(() -> userRepository.findByEmail(usernameOrEmail))
+    return usernameOrEmail -> userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
         .orElseThrow(exceptionFactory::usernameOrEmailNotFound);
   }
 
@@ -76,9 +75,12 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   }
 
   @Bean
-  public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-      throws Exception {
-    return config.getAuthenticationManager();
+  public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
+    try {
+      return config.getAuthenticationManager();
+    } catch (Exception e) {
+      throw new RuntimeException("Failed to initialize AuthenticationManager", e);
+    }
   }
 
   @Bean

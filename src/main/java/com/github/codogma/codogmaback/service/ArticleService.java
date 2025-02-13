@@ -29,7 +29,6 @@ import com.github.codogma.codogmaback.repository.ArticleViewRepository;
 import com.github.codogma.codogmaback.repository.CategoryRepository;
 import com.github.codogma.codogmaback.repository.CompilationRepository;
 import com.github.codogma.codogmaback.repository.LikeRepository;
-import com.github.codogma.codogmaback.repository.NotificationRepository;
 import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
@@ -74,7 +73,6 @@ public class ArticleService {
   private final LocalizationContext localizationContext;
   private final LocalizationUtil localizationUtil;
   private final NotificationService notificationService;
-  private final NotificationRepository notificationRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -91,7 +89,8 @@ public class ArticleService {
     List<Long> articleIds = getArticleIds(content);
     Specification<ArticleModel> spec = ArticleSpecifications.buildSpecification(categoryId,
         compilationId, tag, username, supportedLanguages, isFeed, foundUser, articleIds);
-    return articleRepository.findAll(spec, pageable).map(this::convertArticleModelToDTO)
+    return articleRepository.findAll(spec, pageable)
+        .map(articleModel -> convertArticleModelToDTO(articleModel, userModel))
         .map(this::preparePreview);
   }
 
@@ -104,7 +103,8 @@ public class ArticleService {
     Specification<ArticleView> spec = ArticleViewSpecifications.buildSpecification(tag, articleIds,
         userModel);
     Page<ArticleView> views = articleViewRepository.findAll(spec, pageable);
-    return views.map(view -> convertArticleModelToDTO(view.getArticle())).map(this::preparePreview);
+    return views.map(view -> convertArticleModelToDTO(view.getArticle(), userModel))
+        .map(this::preparePreview);
   }
 
   private List<Long> getArticleIds(String content) {
@@ -132,7 +132,7 @@ public class ArticleService {
   @Transactional
   public List<GetArticle> getDraftArticles(UserModel userModel) {
     return articleRepository.findAllByUserAndStatus(userModel, Status.DRAFT).stream()
-        .map(this::convertArticleModelToDTO).toList();
+        .map(articleModel -> convertArticleModelToDTO(articleModel, userModel)).toList();
   }
 
   @Transactional
@@ -147,7 +147,7 @@ public class ArticleService {
         .equals(userModel.getUsername()) && !userModel.getRole().equals(Role.ROLE_ADMIN)) {
       throw exceptionFactory.articleNotFound(articleId);
     }
-    return convertArticleModelToDTO(articleModel);
+    return convertArticleModelToDTO(articleModel, userModel);
   }
 
   @Transactional
@@ -174,11 +174,11 @@ public class ArticleService {
 //        .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
 //    existingView.setUpdatedAt(new Date());
 //    articleViewRepository.save(existingView);
-    return convertArticleModelToDTO(articleModel);
+    return convertArticleModelToDTO(articleModel, userModel);
   }
 
   @Transactional
-  public List<GetArticle> getRecommendationsForArticle(Long articleId) {
+  public List<GetArticle> getRecommendationsForArticle(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     List<Language> supportedLanguages = localizationContext.getSupportedLanguages();
@@ -201,7 +201,8 @@ public class ArticleService {
 
       return boolQuery;
     }).fetchHits(5);
-    return recommendedArticles.stream().map(this::convertArticleModelToDTO).toList();
+    return recommendedArticles.stream()
+        .map(articleModel -> convertArticleModelToDTO(articleModel, userModel)).toList();
   }
 
   @Transactional
@@ -217,7 +218,7 @@ public class ArticleService {
     }
     articleModel.setStatus(Status.DRAFT);
     ArticleModel savedArticle = articleRepository.save(articleModel);
-    return convertArticleModelToDTO(savedArticle);
+    return convertArticleModelToDTO(savedArticle, userModel);
   }
 
   @Transactional
@@ -225,7 +226,7 @@ public class ArticleService {
     ArticleModel articleModel = ArticleModel.builder().user(userModel)
         .title(draftArticle.getTitle()).content(draftArticle.getContent()).likeCount(0).build();
     ArticleModel savedArticle = articleRepository.save(articleModel);
-    return convertArticleModelToDTO(savedArticle);
+    return convertArticleModelToDTO(savedArticle, userModel);
   }
 
   @Transactional
@@ -411,7 +412,7 @@ public class ArticleService {
           .title(localizationUtil.getLocalizedField("notification.article.moderation.title"))
           .message(localizationUtil.getLocalizedField("notification.article.moderation.message"))
           .type(NotificationType.ARTICLE_MODERATION).isRead(false).build();
-      notificationRepository.save(notification);
+      notificationService.saveAndSendToPrivate(moderator.getUsername(), notification);
     });
   }
 
@@ -427,20 +428,21 @@ public class ArticleService {
   }
 
   @Transactional
-  public GetArticle compilate(Long articleId, CompilationsDTO compilations) {
+  public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
     List<CompilationModel> compilationModelList = compilationRepository.findAllById(
         compilations.getCompilationIds());
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     article.setCompilations(compilationModelList);
     ArticleModel savedArticle = articleRepository.save(article);
-    return convertArticleModelToDTO(savedArticle);
+    return convertArticleModelToDTO(savedArticle, userModel);
   }
 
-  private GetArticle convertArticleModelToDTO(ArticleModel articleModel) {
+  private GetArticle convertArticleModelToDTO(ArticleModel articleModel, UserModel userModel) {
     ArticleModel originalArticle =
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
+    boolean existed = likeRepository.existsByUserAndArticle(userModel, articleModel);
     boolean compilationExists = compilationRepository.existsByArticles_Id(articleModel.getId());
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
@@ -448,8 +450,9 @@ public class ArticleService {
         .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
         .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
             .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
-        .isCompilated(compilationExists).previewContent(articleModel.getPreviewContent())
-        .content(articleModel.getContent()).username(articleModel.getUser().getUsername())
+        .isLiked(existed).isCompilated(compilationExists)
+        .previewContent(articleModel.getPreviewContent()).content(articleModel.getContent())
+        .username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())
         .categories(articleModel.getCategories().stream().map(category -> {
           String localizedCategoryName = category.getName()

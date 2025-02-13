@@ -29,6 +29,8 @@ public class GetArticle {
   private Integer likeCount;
   @Schema(description = "Original article")
   private GetArticle originalArticle;
+  @Schema(description = "Check if the article is liked")
+  private Boolean isLiked;
   @Schema(description = "Check to see if the article is in the compilation")
   private Boolean isCompilated;
   @Schema(description = "Count of compilations of the article", example = "10")
