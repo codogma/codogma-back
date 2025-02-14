@@ -11,6 +11,8 @@ import com.github.codogma.codogmaback.dto.GetTag;
 import com.github.codogma.codogmaback.dto.UpdateArticle;
 import com.github.codogma.codogmaback.dto.UpdateDraftArticle;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
+import com.github.codogma.codogmaback.exception.LikeAlreadyExistsException;
+import com.github.codogma.codogmaback.exception.LikeNotFoundException;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.ArticleView;
@@ -151,18 +153,27 @@ public class ArticleService {
   }
 
   @Transactional
-  public void toggleLike(Long articleId, UserModel userModel) {
+  public void like(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     Optional<LikeModel> existingLike = likeRepository.findByArticleAndUser(article, userModel);
     if (existingLike.isPresent()) {
-      likeRepository.delete(existingLike.get());
-      article.setLikeCount(article.getLikeCount() - 1);
-    } else {
-      LikeModel like = LikeModel.builder().article(article).user(userModel).build();
-      likeRepository.save(like);
-      article.setLikeCount(article.getLikeCount() + 1);
+      throw new LikeAlreadyExistsException("The article was already liked");
     }
+    LikeModel like = LikeModel.builder().article(article).user(userModel).build();
+    likeRepository.save(like);
+    article.setLikeCount(article.getLikeCount() + 1);
+    articleRepository.save(article);
+  }
+
+  @Transactional
+  public void unlike(Long articleId, UserModel userModel) {
+    ArticleModel article = articleRepository.findById(articleId)
+        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
+    LikeModel existingLike = likeRepository.findByArticleAndUser(article, userModel)
+        .orElseThrow(() -> new LikeNotFoundException("Like not found"));
+    likeRepository.delete(existingLike);
+    article.setLikeCount(article.getLikeCount() - 1);
     articleRepository.save(article);
   }
 
@@ -442,7 +453,7 @@ public class ArticleService {
     ArticleModel originalArticle =
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
-    boolean existed = likeRepository.existsByUserAndArticle(userModel, articleModel);
+    boolean likeExists = likeRepository.existsByUserAndArticle(userModel, articleModel);
     boolean compilationExists = compilationRepository.existsByArticles_Id(articleModel.getId());
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
@@ -450,7 +461,7 @@ public class ArticleService {
         .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
         .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
             .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
-        .isLiked(existed).isCompilated(compilationExists)
+        .isLiked(likeExists).isCompilated(compilationExists)
         .previewContent(articleModel.getPreviewContent()).content(articleModel.getContent())
         .username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())

@@ -102,8 +102,16 @@ public class ArticleController {
   @Operation(summary = "Like the article by id")
   public ResponseEntity<?> likeArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    articleService.toggleLike(id, userModel);
-    return ResponseEntity.ok("Like toggled successfully");
+    articleService.like(id, userModel);
+    return ResponseEntity.ok("Article liked successfully");
+  }
+
+  @DeleteMapping("/{id:\\d+}/unlike")
+  @Operation(summary = "Unlike the article by id")
+  public ResponseEntity<?> unlikeArticle(@PathVariable Long id,
+      @AuthenticationPrincipal UserModel userModel) {
+    articleService.unlike(id, userModel);
+    return ResponseEntity.ok("Article unliked successfully");
   }
 
   @PostMapping("/{id:\\d+}/record-view")
