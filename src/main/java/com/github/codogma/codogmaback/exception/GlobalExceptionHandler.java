@@ -205,4 +205,14 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleTypeMismatch(HttpRequestMethodNotSupportedException ex) {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
   }
+
+  @ExceptionHandler(LikeAlreadyExistsException.class)
+  public ResponseEntity<String> handleLikeAlreadyExistsException(LikeAlreadyExistsException ex) {
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+  }
+
+  @ExceptionHandler(LikeNotFoundException.class)
+  public ResponseEntity<String> handleLikeNotFoundException(LikeNotFoundException ex) {
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+  }
 }
