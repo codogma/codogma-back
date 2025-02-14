@@ -9,6 +9,8 @@ import com.github.codogma.codogmaback.exception.ArticleNotFoundException;
 import com.github.codogma.codogmaback.exception.CommentNotFoundException;
 import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.CommentModel;
+import com.github.codogma.codogmaback.model.NotificationModel;
+import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.Status;
 import com.github.codogma.codogmaback.model.UserModel;
@@ -16,6 +18,7 @@ import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.CommentRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.CommentSpecifications;
+import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Objects;
@@ -35,8 +38,10 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CommentService {
 
-  private final CommentRepository commentRepository;
   private final ArticleRepository articleRepository;
+  private final CommentRepository commentRepository;
+  private final LocalizationUtil localizationUtil;
+  private final NotificationService notificationService;
   private final UserRepository userRepository;
 
   @Transactional
@@ -113,6 +118,16 @@ public class CommentService {
     comment.setUser(userModel);
     comment.setArticle(article);
     CommentModel savedComment = commentRepository.save(comment);
+    List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
+    moderators.forEach(moderator -> {
+      NotificationModel notification = NotificationModel.builder()
+          .recipient(moderator.getUsername()).articleId(article.getId())
+          .commentId(savedComment.getId())
+          .title(localizationUtil.getLocalizedField("notification.comment.moderation.title"))
+          .message(localizationUtil.getLocalizedField("notification.comment.moderation.message"))
+          .type(NotificationType.COMMENT_MODERATION).isRead(false).build();
+      notificationService.saveAndSendToPrivate(moderator.getUsername(), notification);
+    });
     return convertCommentModelToDTO(savedComment);
   }
 

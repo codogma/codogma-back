@@ -61,18 +61,18 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ArticleService {
 
+  private final ArticleRepository articleRepository;
+  private final ArticleViewRepository articleViewRepository;
   private final EntityManager entityManager;
   private final ExceptionFactory exceptionFactory;
-  private final UserRepository userRepository;
-  private final ArticleRepository articleRepository;
-  private final LikeRepository likeRepository;
-  private final ArticleViewRepository articleViewRepository;
   private final CategoryRepository categoryRepository;
-  private final TagRepository tagRepository;
   private final CompilationRepository compilationRepository;
+  private final LikeRepository likeRepository;
   private final LocalizationContext localizationContext;
   private final LocalizationUtil localizationUtil;
   private final NotificationService notificationService;
+  private final TagRepository tagRepository;
+  private final UserRepository userRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;

@@ -4,6 +4,7 @@ import com.github.codogma.codogmaback.dto.CreateNotification;
 import com.github.codogma.codogmaback.dto.GetNotification;
 import com.github.codogma.codogmaback.dto.GetSystemNotification;
 import com.github.codogma.codogmaback.dto.UpdateNotification;
+import com.github.codogma.codogmaback.event.NotificationEvent;
 import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.UserModel;
@@ -15,12 +16,12 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -28,10 +29,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class NotificationService {
 
-  public static final String PRIVATE_NOTIFICATIONS = "/queue/notifications";
-  public static final String PUBLIC_NOTIFICATIONS = "/topic/public-notifications";
+  private final ApplicationEventPublisher eventPublisher;
   private final NotificationRepository notificationRepository;
-  private final SimpMessagingTemplate messagingTemplate;
   private final LocalizationUtil localizationUtil;
 
   @Transactional
@@ -100,7 +99,7 @@ public class NotificationService {
     notificationRepository.deleteByTypeAndId(NotificationType.SYSTEM, id);
     GetNotification payload = GetNotification.builder().id(id).title("delete")
         .message("The system notification deleted").build();
-    messagingTemplate.convertAndSend(PUBLIC_NOTIFICATIONS, payload);
+    eventPublisher.publishEvent(new NotificationEvent(null, payload, false));
   }
 
   @Transactional
@@ -114,21 +113,21 @@ public class NotificationService {
     notificationRepository.deleteByType(NotificationType.SYSTEM);
     GetNotification payload = GetNotification.builder().title("delete")
         .message("All system notifications deleted").build();
-    messagingTemplate.convertAndSend(PUBLIC_NOTIFICATIONS, payload);
+    eventPublisher.publishEvent(new NotificationEvent(null, payload, false));
   }
 
   @Transactional
   public void saveAndSendToPrivate(String username, NotificationModel notification) {
-    notificationRepository.save(notification);
-    GetNotification payload = convertNotificationModelToDTO(notification);
-    messagingTemplate.convertAndSendToUser(username, PRIVATE_NOTIFICATIONS, payload);
+    NotificationModel saved = notificationRepository.save(notification);
+    GetNotification payload = convertNotificationModelToDTO(saved);
+    eventPublisher.publishEvent(new NotificationEvent(username, payload, true));
   }
 
   @Transactional
   public void saveAndSendToPublic(NotificationModel notification) {
-    notificationRepository.save(notification);
-    GetNotification payload = convertNotificationModelToDTO(notification);
-    messagingTemplate.convertAndSend(PUBLIC_NOTIFICATIONS, payload);
+    NotificationModel saved = notificationRepository.save(notification);
+    GetNotification payload = convertNotificationModelToDTO(saved);
+    eventPublisher.publishEvent(new NotificationEvent(null, payload, false));
   }
 
   public GetNotification convertNotificationModelToDTO(NotificationModel notification) {
