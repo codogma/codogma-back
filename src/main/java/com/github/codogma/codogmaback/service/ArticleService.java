@@ -38,10 +38,13 @@ import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpeci
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -181,10 +184,12 @@ public class ArticleService {
   public GetArticle recordView(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-//    ArticleView existingView = articleViewRepository.findByUserAndArticle(userModel, articleModel)
-//        .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
-//    existingView.setUpdatedAt(new Date());
-//    articleViewRepository.save(existingView);
+    if (userModel != null) {
+      ArticleView existingView = articleViewRepository.findByUserAndArticle(userModel, articleModel)
+          .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
+      existingView.setUpdatedAt(new Date());
+      articleViewRepository.save(existingView);
+    }
     return convertArticleModelToDTO(articleModel, userModel);
   }
 
@@ -442,19 +447,28 @@ public class ArticleService {
   public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
     List<CompilationModel> compilationModelList = compilationRepository.findAllById(
         compilations.getCompilationIds());
+    if (compilationModelList.size() != compilations.getCompilationIds().size()) {
+      throw new IllegalArgumentException("Some compilation IDs are invalid");
+    }
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    article.setCompilations(compilationModelList);
-    ArticleModel savedArticle = articleRepository.save(article);
-    return convertArticleModelToDTO(savedArticle, userModel);
+    Set<CompilationModel> compilationsSet = new HashSet<>(article.getCompilations());
+    compilationsSet.addAll(compilationModelList);
+    article.setCompilations(compilationsSet.stream().toList());
+    return convertArticleModelToDTO(article, userModel);
   }
 
   private GetArticle convertArticleModelToDTO(ArticleModel articleModel, UserModel userModel) {
     ArticleModel originalArticle =
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
-    boolean likeExists = likeRepository.existsByUserAndArticle(userModel, articleModel);
-    boolean compilationExists = compilationRepository.existsByArticles_Id(articleModel.getId());
+    boolean compilationExists = compilationRepository.existsByArticles_IdAndUser(
+        articleModel.getId(), userModel);
+    List<GetCompilation> compilations = new ArrayList<>(compilationRepository.findAllByIdInAndUser(
+        articleModel.getCompilations().stream().map(CompilationModel::getId).toList(),
+        userModel)).stream().map(compilation -> GetCompilation.builder().id(compilation.getId())
+        .title(compilation.getTitle()).build()).toList();
+    boolean likeExists = !compilations.isEmpty();
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
@@ -469,12 +483,9 @@ public class ArticleService {
           String localizedCategoryName = category.getName()
               .getOrDefault(interfaceLanguage, category.getName().get(Language.EN));
           return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
-        }).toList()).compilations(articleModel.getCompilations().stream().map(
-            compilation -> GetCompilation.builder().id(compilation.getId())
-                .title(compilation.getTitle()).build()).toList()).tags(
-            articleModel.getTags().stream().map(
-                    tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
-                .toList()).compilationsCount(articleModel.getCompilations().size())
+        }).toList()).compilations(compilations).tags(articleModel.getTags().stream()
+            .map(tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
+            .toList()).compilationsCount(articleModel.getCompilations().size())
         .commentsCount(commentsCount).createdAt(articleModel.getCreatedAt())
         .updatedAt(articleModel.getUpdatedAt()).build();
   }

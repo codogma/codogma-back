@@ -12,7 +12,7 @@ import org.springframework.stereotype.Repository;
 public interface CompilationRepository extends JpaRepository<CompilationModel, Long>,
     JpaSpecificationExecutor<CompilationModel> {
 
-  boolean existsByArticles_Id(Long id);
+  boolean existsByArticles_IdAndUser(Long articlesId, UserModel userModel);
 
   List<CompilationModel> findTop10ByTitleStartingWithIgnoreCaseAndUser(String name, UserModel user);
 
