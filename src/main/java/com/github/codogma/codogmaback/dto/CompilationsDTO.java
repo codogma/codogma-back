@@ -1,6 +1,7 @@
 package com.github.codogma.codogmaback.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @Schema(name = "Compilations")
 public class CompilationsDTO {
 
-  @Schema(description = "Compilations associated with the article")
+  @NotNull(message = "Compilation ids cannot be null")
+  @Schema(description = "Compilation ids associated with the article")
   private List<Long> compilationIds;
 }

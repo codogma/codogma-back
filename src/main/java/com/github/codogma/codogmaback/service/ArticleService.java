@@ -445,16 +445,27 @@ public class ArticleService {
 
   @Transactional
   public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
-    List<CompilationModel> compilationModelList = compilationRepository.findAllById(
-        compilations.getCompilationIds());
-    if (compilationModelList.size() != compilations.getCompilationIds().size()) {
+    List<Long> compilationIdsToAddOrRemove = compilations.getCompilationIds();
+    List<CompilationModel> compilationModelList = compilationRepository.findAllByIdInAndUser(
+        compilationIdsToAddOrRemove, userModel);
+    if (compilationModelList.size() != compilationIdsToAddOrRemove.size()) {
       throw new IllegalArgumentException("Some compilation IDs are invalid");
     }
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    Set<CompilationModel> compilationsSet = new HashSet<>(article.getCompilations());
-    compilationsSet.addAll(compilationModelList);
-    article.setCompilations(compilationsSet.stream().toList());
+    List<CompilationModel> userCompilations = compilationRepository.findAllByUser(userModel);
+    List<CompilationModel> articleCompilations = article.getCompilations();
+    Set<Long> compilationIdsSet = new HashSet<>(compilationIdsToAddOrRemove);
+    articleCompilations.removeIf(
+        compilation -> userCompilations.contains(compilation) && !compilationIdsSet.contains(
+            compilation.getId()));
+    Set<CompilationModel> currentCompilationsSet = new HashSet<>(articleCompilations);
+    for (CompilationModel compilation : compilationModelList) {
+      if (!currentCompilationsSet.contains(compilation)) {
+        articleCompilations.add(compilation);
+      }
+    }
+    article.setCompilations(articleCompilations);
     return convertArticleModelToDTO(article, userModel);
   }
 
@@ -462,13 +473,12 @@ public class ArticleService {
     ArticleModel originalArticle =
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
-    boolean compilationExists = compilationRepository.existsByArticles_IdAndUser(
-        articleModel.getId(), userModel);
+    boolean likeExists = likeRepository.existsByUserAndArticle(userModel, articleModel);
     List<GetCompilation> compilations = new ArrayList<>(compilationRepository.findAllByIdInAndUser(
         articleModel.getCompilations().stream().map(CompilationModel::getId).toList(),
         userModel)).stream().map(compilation -> GetCompilation.builder().id(compilation.getId())
         .title(compilation.getTitle()).build()).toList();
-    boolean likeExists = !compilations.isEmpty();
+    boolean compilationExists = !compilations.isEmpty();
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
