@@ -3,7 +3,7 @@ package com.github.codogma.codogmaback.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.codogma.codogmaback.model.Status;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +27,7 @@ public class GetComment {
   @Schema(description = "User associated with the comment")
   private GetUser user;
   @Schema(description = "Creation date of the comment", example = "2022-01-01T00:00:00.000Z")
-  private Date createdAt;
+  private LocalDateTime createdAt;
   @Schema(description = "Replies to the comment")
   private List<GetComment> replies;
   @Schema(description = "Article associated with the comment")

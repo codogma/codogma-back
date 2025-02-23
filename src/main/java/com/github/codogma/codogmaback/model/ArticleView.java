@@ -10,13 +10,14 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.util.Date;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 
 @Data
 @Entity
@@ -28,6 +29,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 public class ArticleView {
 
   @Id
+  @GenericField
   @Column(nullable = false)
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -39,8 +41,8 @@ public class ArticleView {
   private ArticleModel article;
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private Date createdAt;
+  private LocalDateTime createdAt;
   @UpdateTimestamp
   @Column(name = "updated_at")
-  private Date updatedAt;
+  private LocalDateTime updatedAt;
 }

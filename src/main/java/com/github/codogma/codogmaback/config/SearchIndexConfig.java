@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.lang.NonNull;
 import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
@@ -32,7 +33,7 @@ public class SearchIndexConfig implements ApplicationListener<ContextRefreshedEv
 
   @Override
   @Transactional
-  public void onApplicationEvent(ContextRefreshedEvent event) {
+  public void onApplicationEvent(@NonNull ContextRefreshedEvent event) {
     initializeSearchIndexing();
   }
 
@@ -48,6 +49,6 @@ public class SearchIndexConfig implements ApplicationListener<ContextRefreshedEv
 
   @PostConstruct
   public void increaseMaxClauseCount() {
-    IndexSearcher.setMaxClauseCount(4096);
+    IndexSearcher.setMaxClauseCount(200000);
   }
 }

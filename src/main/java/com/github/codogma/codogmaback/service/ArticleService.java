@@ -37,8 +37,9 @@ import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifica
 import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpecifications;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -78,9 +79,12 @@ public class ArticleService {
   private final NotificationService notificationService;
   private final TagRepository tagRepository;
   private final UserRepository userRepository;
+  private final ContentBasedRecommender contentBasedRecommender;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
+  @Value("${recommendation.limit:5}")
+  private int recommendationLimit;
 
   @Transactional
   public Page<GetArticle> getArticles(String order, String sort, int page, int size,
@@ -187,7 +191,7 @@ public class ArticleService {
     if (userModel != null) {
       ArticleView existingView = articleViewRepository.findByUserAndArticle(userModel, articleModel)
           .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
-      existingView.setUpdatedAt(new Date());
+      existingView.setUpdatedAt(LocalDateTime.now());
       articleViewRepository.save(existingView);
     }
     return convertArticleModelToDTO(articleModel, userModel);
@@ -197,28 +201,48 @@ public class ArticleService {
   public List<GetArticle> getRecommendationsForArticle(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    List<Language> supportedLanguages = localizationContext.getSupportedLanguages();
-    List<String> categoryNames = article.getCategories().stream()
-        .flatMap(category -> category.getName().values().stream()).toList();
-    List<String> tagNames = article.getTags().stream().map(TagModel::getName).toList();
+    List<Long> categoryNames = article.getCategories().stream().map(CategoryModel::getId).toList();
+    List<Long> tagId = article.getTags().stream().map(TagModel::getId).toList();
     SearchSession searchSession = Search.session(entityManager);
     List<ArticleModel> recommendedArticles = searchSession.search(ArticleModel.class).where(f -> {
-      BooleanPredicateClausesStep<?> boolQuery = f.bool()
+      BooleanPredicateClausesStep<?> bool = f.bool()
           .must(f.match().field("status").matching(Status.PUBLISHED))
-          .must(f.terms().field("language").matchingAny(supportedLanguages));
+          .mustNot(f.match().field("id").matching(articleId))
+          .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
+          .should(f.phrase().field("title").matching(article.getTitle())).boost(3.0f)
+          .should(f.match().field("content").matching(article.getContent())).boost(1.5f);
+      if (article.getLikeCount() != null) {
+        bool.should(
+            f.range().field("likeCount").atLeast(Math.round(article.getLikeCount() * 0.8f))
+                .boost(1.2f));
+      }
+      if (!tagId.isEmpty()) {
+        bool.should(
+            f.terms().fields("tags.id").matchingAny(tagId).boost(tagId.size() > 3 ? 2.5f : 1.8f));
+      }
       if (!categoryNames.isEmpty()) {
-        boolQuery.should(f.terms().fields("categories.name").matchingAny(categoryNames));
+        bool.should(f.terms().fields("categories.id").matchingAny(categoryNames)
+            .boost(categoryNames.size() > 2 ? 3.0f : 2.0f));
       }
-      if (!tagNames.isEmpty()) {
-        boolQuery.should(f.terms().fields("tags.name").matchingAny(tagNames));
-      }
-      boolQuery.should(f.match().field("content").matching(article.getContent()))
-          .should(f.match().field("title").matching(article.getTitle()));
-
-      return boolQuery;
-    }).fetchHits(5);
+      return bool;
+    }).sort(f -> f.composite(b -> {
+      b.add(f.score().desc());
+      b.add(f.field("likeCount").desc());
+      b.add(f.field("createdAt").desc());
+    })).fetchHits(recommendationLimit);
     return recommendedArticles.stream()
-        .map(articleModel -> convertArticleModelToDTO(articleModel, userModel)).toList();
+        .map(articleModel -> convertArticleModelToDTO(articleModel, userModel))
+        .map(this::preparePreview).toList();
+  }
+
+  @Transactional
+  public List<GetArticle> getRecommendations(UserModel user) {
+    if (user == null) {
+      return Collections.emptyList();
+    }
+    List<ArticleModel> recommendations = contentBasedRecommender.getRecommendations(user.getId());
+    return recommendations.stream().map(article -> convertArticleModelToDTO(article, user))
+        .map(this::preparePreview).collect(Collectors.toList());
   }
 
   @Transactional
@@ -478,16 +502,14 @@ public class ArticleService {
         articleModel.getCompilations().stream().map(CompilationModel::getId).toList(),
         userModel)).stream().map(compilation -> GetCompilation.builder().id(compilation.getId())
         .title(compilation.getTitle()).build()).toList();
-    boolean compilationExists = !compilations.isEmpty();
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
         .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
         .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
             .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
-        .isLiked(likeExists).isCompilated(compilationExists)
-        .previewContent(articleModel.getPreviewContent()).content(articleModel.getContent())
-        .username(articleModel.getUser().getUsername())
+        .isLiked(likeExists).previewContent(articleModel.getPreviewContent())
+        .content(articleModel.getContent()).username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())
         .categories(articleModel.getCategories().stream().map(category -> {
           String localizedCategoryName = category.getName()

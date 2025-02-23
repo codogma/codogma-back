@@ -36,7 +36,8 @@ public class LocalizationUtil {
         values.get(interfaceLanguage))) {
       return values.get(interfaceLanguage);
     }
-    if (values.containsKey(Language.EN) && StringUtils.hasText(values.get(interfaceLanguage))) {
+    if (values.containsKey(Language.EN) && StringUtils.hasText(
+        values.get(interfaceLanguage))) {
       return values.get(Language.EN);
     }
     return values.values().stream().filter(StringUtils::hasText).findFirst().orElse(null);

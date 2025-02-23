@@ -17,8 +17,8 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,7 +26,10 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.search.engine.backend.types.Sortable;
+import org.hibernate.search.mapper.pojo.bridge.builtin.annotation.AlternativeDiscriminator;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
+import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
 
@@ -40,6 +43,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmb
 public class ArticleModel {
 
   @Id
+  @GenericField
   @Column(nullable = false)
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -49,18 +53,22 @@ public class ArticleModel {
   @Enumerated(EnumType.STRING)
   private Status status = Status.DRAFT;
   @FullTextField
+  @AlternativeDiscriminator
   @Enumerated(EnumType.STRING)
   private Language language;
   @Column(nullable = false)
+  @GenericField(sortable = Sortable.YES)
   private Integer likeCount;
   private Long originalArticleId;
   @FullTextField
+  @MultiLanguageField
   @Column(nullable = false)
   private String title;
   @FullTextField
   @Column(columnDefinition = "TEXT")
   private String previewContent;
   @FullTextField
+  @MultiLanguageField
   @Column(columnDefinition = "TEXT")
   private String content;
   @IndexedEmbedded
@@ -68,7 +76,7 @@ public class ArticleModel {
   @JoinColumn(name = "user_id", nullable = false)
   private UserModel user;
   @Builder.Default
-  @IndexedEmbedded
+  @IndexedEmbedded(includePaths = {"id"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_categories", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
   private List<CategoryModel> categories = new ArrayList<>();
@@ -79,17 +87,18 @@ public class ArticleModel {
       @UniqueConstraint(columnNames = {"article_id", "compilation_id"})})
   private List<CompilationModel> compilations = new ArrayList<>();
   @Builder.Default
-  @IndexedEmbedded
+  @IndexedEmbedded(includePaths = {"id", "name"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_tags", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
   private List<TagModel> tags = new ArrayList<>();
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("createdAt ASC")
   private List<CommentModel> comments = new ArrayList<>();
+  @GenericField(sortable = Sortable.YES)
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private Date createdAt;
+  private LocalDateTime createdAt;
   @UpdateTimestamp
   @Column(name = "updated_at")
-  private Date updatedAt;
+  private LocalDateTime updatedAt;
 }
