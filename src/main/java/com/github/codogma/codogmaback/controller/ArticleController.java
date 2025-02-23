@@ -125,8 +125,15 @@ public class ArticleController {
     return ResponseEntity.ok(article);
   }
 
+  @GetMapping("/recommendations")
+  @Operation(summary = "Get recommendations for the user based on their interests")
+  public ResponseEntity<List<GetArticle>> getRecommendations(
+      @AuthenticationPrincipal UserModel user) {
+    return ResponseEntity.ok(articleService.getRecommendations(user));
+  }
+
   @GetMapping("/{id:\\d+}/recommendations")
-  @Operation(summary = "Get the recommendations")
+  @Operation(summary = "Get recommendations for the user based on the article")
   public ResponseEntity<List<GetArticle>> getRecommendationsForArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
     List<GetArticle> articles = articleService.getRecommendationsForArticle(id, userModel);
@@ -134,7 +141,7 @@ public class ArticleController {
   }
 
   @GetMapping("/drafts")
-  @Operation(summary = "Get the author's draft articles")
+  @Operation(summary = "Get author's draft articles")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<List<GetArticle>> getDraftArticles(
@@ -144,7 +151,7 @@ public class ArticleController {
   }
 
   @GetMapping("/{id:\\d+}/draft")
-  @Operation(summary = "Get the author's drafted article")
+  @Operation(summary = "Get author's drafted article")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<GetArticle> getDraftedArticleById(@PathVariable Long id,

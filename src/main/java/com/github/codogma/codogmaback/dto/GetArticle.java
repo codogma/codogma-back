@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.Status;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.util.Date;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,8 +31,6 @@ public class GetArticle {
   private GetArticle originalArticle;
   @Schema(description = "Check if the article is liked")
   private Boolean isLiked;
-  @Schema(description = "Check to see if the article is in the compilation")
-  private Boolean isCompilated;
   @Schema(description = "Count of compilations of the article", example = "10")
   private Integer compilationsCount;
   @Schema(description = "Count of comments of the article", example = "10")
@@ -54,7 +52,7 @@ public class GetArticle {
   @Schema(description = "Compilations associated with the article")
   private List<GetCompilation> compilations;
   @Schema(description = "Date and time of the article creation", example = "2022-01-01T00:00:00.000Z")
-  private Date createdAt;
+  private LocalDateTime createdAt;
   @Schema(description = "Date and time of the article update", example = "2022-01-01T01:00:00.000Z")
-  private Date updatedAt;
+  private LocalDateTime updatedAt;
 }

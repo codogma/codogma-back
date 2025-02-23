@@ -23,6 +23,8 @@ spring:
             directory:
               root: ${user.home}/codogma/lucene/indexes
             type: lucene
+            analysis:
+              configurer: class:com.github.codogma.codogmaback.config.SearchAnalysisConfigurer
   servlet:
     multipart:
       max-file-size: 10MB
@@ -115,3 +117,6 @@ search:
   mass:
     indexer:
       threads: 5
+
+recommendation:
+  limit: 5

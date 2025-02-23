@@ -215,4 +215,9 @@ public class GlobalExceptionHandler {
   public ResponseEntity<String> handleLikeNotFoundException(LikeNotFoundException ex) {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
   }
+
+  @ExceptionHandler(UserIdNotFoundException.class)
+  public ResponseEntity<String> handleUserIdNotFoundException(UserIdNotFoundException ex) {
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+  }
 }

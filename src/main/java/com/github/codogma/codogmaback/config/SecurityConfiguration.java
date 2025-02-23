@@ -45,7 +45,7 @@ public class SecurityConfiguration {
                     "/api-docs/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/articles/**", "/categories/**", "/users/**",
                     "/compilations/**", "/images/**", "/comments/**", "/tags/**",
-                    "/notifications/**").permitAll()
+                    "/notifications/**", "/recommendations/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/articles/*/record-view").permitAll()
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()).oauth2Login(
