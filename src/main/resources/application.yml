@@ -120,3 +120,8 @@ search:
 
 recommendation:
   limit: 5
+
+opennlp-models:
+  path:
+    pos: opennlp-models/opennlp-ru-ud-gsd-pos-1.2-2.5.0.bin
+    lemmas: opennlp-models/opennlp-ru-ud-gsd-lemmas-1.2-2.5.0.bin
