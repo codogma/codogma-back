@@ -87,7 +87,7 @@ public class ArticleModel {
       @UniqueConstraint(columnNames = {"article_id", "compilation_id"})})
   private List<CompilationModel> compilations = new ArrayList<>();
   @Builder.Default
-  @IndexedEmbedded(includePaths = {"id", "name"})
+  @IndexedEmbedded(includePaths = {"name"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_tags", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
   private List<TagModel> tags = new ArrayList<>();

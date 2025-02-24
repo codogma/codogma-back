@@ -15,7 +15,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
-import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
 @Data
@@ -28,12 +27,11 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 public class TagModel {
 
   @Id
-  @GenericField
   @Column(nullable = false)
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @Column(nullable = false, unique = true)
-  @FullTextField(name = "name", analyzer = "standard")
+  @FullTextField
   private String name;
   @ManyToMany(fetch = FetchType.LAZY, mappedBy = "tags")
   private List<ArticleModel> articles = new ArrayList<>();
