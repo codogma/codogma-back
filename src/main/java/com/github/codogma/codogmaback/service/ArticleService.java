@@ -15,6 +15,7 @@ import com.github.codogma.codogmaback.exception.LikeAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.LikeNotFoundException;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.ArticleModel;
+import com.github.codogma.codogmaback.model.ArticleScoreProjection;
 import com.github.codogma.codogmaback.model.ArticleView;
 import com.github.codogma.codogmaback.model.CategoryModel;
 import com.github.codogma.codogmaback.model.CompilationModel;
@@ -223,37 +224,40 @@ public class ArticleService {
     keywords.addAll(tagNames);
     String combinedKeywords = String.join(" ", keywords);
     SearchSession searchSession = Search.session(entityManager);
-    SearchResult<ArticleModel> result = searchSession.search(ArticleModel.class).where(f -> {
-      BooleanPredicateClausesStep<?> bool = f.bool()
-          .must(f.match().field("status").matching(Status.PUBLISHED))
-          .mustNot(f.match().field("id").matching(articleId))
-          .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
-          .should(
-              f.simpleQueryString().fields("title", "tags.name")
-                  .matching(combinedKeywords).defaultOperator(BooleanOperator.AND).boost(3.0f))
-          .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(13.0f))
-          .should(f.match().field("content").matching(article.getContent()).boost(0.0001f));
-      if (article.getLikeCount() != null) {
-        bool.should(
-            f.range().field("likeCount").atLeast(Math.round(article.getLikeCount() * 0.8f))
-                .boost(1.2f));
-      }
-      if (!tagNames.isEmpty()) {
-        bool.should(f.terms().fields("tags.name").matchingAny(tagNames)
-            .boost(tagNames.size() > 3 ? 3.5f : 2.0f));
-      }
-      if (!categoryNames.isEmpty()) {
-        bool.should(f.terms().fields("categories.id").matchingAny(categoryNames)
-            .boost(categoryNames.size() > 1 ? 3.4f : 2.0f));
-      }
-      bool.minimumShouldMatchNumber(1);
-      return bool;
-    }).sort(f -> f.composite(b -> {
-      b.add(f.score().desc());
-      b.add(f.field("likeCount").desc());
-      b.add(f.field("createdAt").desc());
-    })).fetch(recommendationLimit);
-    List<ArticleModel> recommendedArticles = result.hits();
+    SearchResult<ArticleScoreProjection> result = searchSession.search(ArticleModel.class)
+        .select(f -> f.composite().from(f.score(), f.entity()).as(ArticleScoreProjection::new))
+        .where(f -> {
+          BooleanPredicateClausesStep<?> bool = f.bool()
+              .must(f.match().field("status").matching(Status.PUBLISHED))
+              .mustNot(f.match().field("id").matching(articleId))
+              .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
+              .should(f.simpleQueryString().fields("title", "tags.name").matching(combinedKeywords)
+                  .defaultOperator(BooleanOperator.OR).boost(1.0f))
+              .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(10.0f))
+              .should(f.match().field("content").matching(article.getContent()).boost(0.00005f));
+          if (article.getLikeCount() != null) {
+            bool.should(
+                f.range().field("likeCount").atLeast(Math.round(article.getLikeCount() * 0.8f))
+                    .boost(1.2f));
+          }
+          if (!tagNames.isEmpty()) {
+            bool.should(f.terms().fields("tags.name").matchingAny(tagNames)
+                .boost(tagNames.size() > 3 ? 5.0f : 1.0f));
+          }
+          if (!categoryNames.isEmpty()) {
+            bool.should(f.terms().fields("categories.id").matchingAny(categoryNames)
+                .boost(categoryNames.size() > 1 ? 5.0f : 3.5f));
+          }
+          bool.minimumShouldMatchNumber(1);
+          return bool;
+        }).sort(f -> f.composite(b -> {
+          b.add(f.score().desc());
+          b.add(f.field("likeCount").desc());
+          b.add(f.field("createdAt").desc());
+        })).fetch(recommendationLimit);
+    List<ArticleModel> recommendedArticles = result.hits().stream()
+        .peek(hit -> log.info("Score: {} {}", hit.score(), hit.articleModel().getTitle()))
+        .filter(hit -> hit.score() > 35.0f).map(ArticleScoreProjection::articleModel).toList();
     return recommendedArticles.stream()
         .map(articleModel -> convertArticleModelToDTO(articleModel, userModel))
         .map(this::preparePreview).toList();
