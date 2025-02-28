@@ -22,8 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Builder.Default;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.engine.backend.types.Sortable;
@@ -33,7 +37,9 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.IndexedEmbedded;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Builder
 @Indexed
@@ -74,25 +80,30 @@ public class ArticleModel {
   @IndexedEmbedded
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
+  @Exclude
   private UserModel user;
-  @Builder.Default
+  @Default
   @IndexedEmbedded(includePaths = {"id"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_categories", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
+  @Exclude
   private List<CategoryModel> categories = new ArrayList<>();
   @Builder.Default
   @IndexedEmbedded
+  @Exclude
   @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
   @JoinTable(name = "article_compilations", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "compilation_id"), uniqueConstraints = {
       @UniqueConstraint(columnNames = {"article_id", "compilation_id"})})
   private List<CompilationModel> compilations = new ArrayList<>();
-  @Builder.Default
-  @IndexedEmbedded(includePaths = {"name"})
+  @Default
+  @IndexedEmbedded(includePaths = {"id", "name"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_tags", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
+  @Exclude
   private List<TagModel> tags = new ArrayList<>();
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("createdAt ASC")
+  @Exclude
   private List<CommentModel> comments = new ArrayList<>();
   @GenericField(sortable = Sortable.YES)
   @CreationTimestamp
