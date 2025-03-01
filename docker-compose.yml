@@ -8,8 +8,17 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: codogma-back
+      PGDATA: /var/lib/postgresql/data
     ports:
       - "5432:5432"
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d codogma-back" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   app:
     image: airatgaliev/codogma-back:latest
     build:
@@ -36,3 +45,7 @@ services:
       spring.jpa.properties.hibernate.search.backend.directory.root: /app/lucene/indexes
     depends_on:
       - db
+
+volumes:
+  postgres-db:
+    driver: local
