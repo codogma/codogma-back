@@ -19,9 +19,11 @@ import java.util.Collection;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.ToString;
+import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
@@ -31,7 +33,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Builder
 @Indexed
@@ -73,26 +77,26 @@ public class UserModel implements UserDetails {
   @Column(nullable = false)
   private Role role;
   @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE)
-  @ToString.Exclude
+  @Exclude
   private List<ArticleModel> articles;
   @OneToMany(mappedBy = "subscriber", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-  @ToString.Exclude
+  @Exclude
   private List<SubscriptionModel> subscriptions = new ArrayList<>();
   @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-  @ToString.Exclude
+  @Exclude
   private List<SubscriptionModel> subscribers = new ArrayList<>();
   @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-  @ToString.Exclude
+  @Exclude
   private List<CompilationModel> compilations = new ArrayList<>();
   @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-  @ToString.Exclude
+  @Exclude
   private List<FavoriteModel> favorites = new ArrayList<>();
   @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-  @ToString.Exclude
+  @Exclude
   private List<BookmarkModel> bookmarks = new ArrayList<>();
   @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("createdAt ASC")
-  @ToString.Exclude
+  @Exclude
   private List<CommentModel> comments = new ArrayList<>();
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")

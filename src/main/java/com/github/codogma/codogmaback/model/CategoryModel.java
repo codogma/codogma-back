@@ -24,15 +24,20 @@ import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Builder
 @Indexed
@@ -63,8 +68,10 @@ public class CategoryModel {
   @Column(name = "image_url")
   private String imageUrl;
   @ManyToMany(fetch = FetchType.LAZY, mappedBy = "categories")
+  @Exclude
   private List<ArticleModel> articles = new ArrayList<>();
   @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+  @Exclude
   private List<FavoriteModel> favorites = new ArrayList<>();
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")

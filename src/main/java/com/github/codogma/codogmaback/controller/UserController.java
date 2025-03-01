@@ -48,6 +48,7 @@ public class UserController {
   @GetMapping
   @Operation(summary = "Get filtered users")
   @Parameters({@Parameter(name = "categoryId", description = "Category id to filter authors"),
+      @Parameter(name = "targetUsername", description = "Target username to get subscribers"),
       @Parameter(name = "role", description = "Role to filter users", schema = @Schema(implementation = UserRole.class)),
       @Parameter(name = "tag", description = "Tag to filter users"),
       @Parameter(name = "info", description = "Information to filter users"),
@@ -58,6 +59,7 @@ public class UserController {
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
   public ResponseEntity<Page<GetUser>> getUsers(@RequestParam(required = false) Long categoryId,
+      @RequestParam(required = false) String targetUsername,
       @RequestParam(required = false) UserRole role, @RequestParam(required = false) String tag,
       @RequestParam(required = false) String info,
       @RequestParam(required = false) Boolean isSubscriptions,
@@ -66,8 +68,8 @@ public class UserController {
       @RequestParam(defaultValue = "username") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetUser> users = userService.getUsers(categoryId, role, tag, info, page, size, sort, order,
-        isSubscriptions, isSubscribers, userModel);
+    Page<GetUser> users = userService.getUsers(categoryId, targetUsername, role, tag, info, page,
+        size, sort, order, isSubscriptions, isSubscribers, userModel);
     return ResponseEntity.ok(users);
   }
 

@@ -17,14 +17,19 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
 
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Builder
 @Indexed
@@ -44,12 +49,15 @@ public class CompilationModel {
   private String description;
   @Column(name = "image_url")
   private String imageUrl;
+  @Exclude
   @ManyToMany(fetch = FetchType.LAZY, mappedBy = "compilations")
   private List<ArticleModel> articles = new ArrayList<>();
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
+  @Exclude
   private UserModel user;
   @OneToMany(mappedBy = "compilation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+  @Exclude
   private List<BookmarkModel> bookmarks = new ArrayList<>();
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")

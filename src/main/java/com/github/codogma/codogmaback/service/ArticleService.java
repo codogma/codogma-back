@@ -15,6 +15,7 @@ import com.github.codogma.codogmaback.exception.LikeAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.LikeNotFoundException;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.ArticleModel;
+import com.github.codogma.codogmaback.model.ArticleScoreProjection;
 import com.github.codogma.codogmaback.model.ArticleView;
 import com.github.codogma.codogmaback.model.CategoryModel;
 import com.github.codogma.codogmaback.model.CompilationModel;
@@ -35,10 +36,9 @@ import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
 import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpecifications;
+import com.github.codogma.codogmaback.util.KeywordExtractor;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,19 +51,12 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import opennlp.tools.lemmatizer.LemmatizerME;
-import opennlp.tools.lemmatizer.LemmatizerModel;
-import opennlp.tools.postag.POSModel;
-import opennlp.tools.postag.POSTaggerME;
-import opennlp.tools.tokenize.SimpleTokenizer;
 import org.hibernate.search.engine.search.common.BooleanOperator;
 import org.hibernate.search.engine.search.predicate.dsl.BooleanPredicateClausesStep;
 import org.hibernate.search.engine.search.query.SearchResult;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -84,6 +77,7 @@ public class ArticleService {
   private final ExceptionFactory exceptionFactory;
   private final CategoryRepository categoryRepository;
   private final CompilationRepository compilationRepository;
+  private final KeywordExtractor keywordExtractor;
   private final LikeRepository likeRepository;
   private final LocalizationContext localizationContext;
   private final LocalizationUtil localizationUtil;
@@ -96,10 +90,6 @@ public class ArticleService {
   private int searchResultsLimit;
   @Value("${recommendation.limit:5}")
   private int recommendationLimit;
-  @Value("${opennlp-models.path.pos}")
-  private String opennlpModelsPathPos;
-  @Value("${opennlp-models.path.lemmas}")
-  private String opennlpModelsPathLemmas;
 
   @Transactional
   public Page<GetArticle> getArticles(String order, String sort, int page, int size,
@@ -219,74 +209,47 @@ public class ArticleService {
     List<Long> categoryNames = article.getCategories().stream().map(CategoryModel::getId).toList();
     Set<String> tagNames = article.getTags().stream().map(TagModel::getName)
         .collect(Collectors.toSet());
-    Set<String> keywords = extractKeywords(article.getTitle());
-    keywords.addAll(tagNames);
-    String combinedKeywords = String.join(" ", keywords);
+    Set<String> titleKeywords = new HashSet<>(keywordExtractor.extractKeywords(article.getTitle()));
+    titleKeywords.addAll(tagNames);
+    String combinedKeywords = String.join(" ", titleKeywords);
     SearchSession searchSession = Search.session(entityManager);
-    SearchResult<ArticleModel> result = searchSession.search(ArticleModel.class).where(f -> {
-      BooleanPredicateClausesStep<?> bool = f.bool()
-          .must(f.match().field("status").matching(Status.PUBLISHED))
-          .mustNot(f.match().field("id").matching(articleId))
-          .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
-          .should(
-              f.simpleQueryString().fields("title", "tags.name")
-                  .matching(combinedKeywords).defaultOperator(BooleanOperator.AND).boost(3.0f))
-          .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(13.0f))
-          .should(f.match().field("content").matching(article.getContent()).boost(0.0001f));
-      if (article.getLikeCount() != null) {
-        bool.should(
-            f.range().field("likeCount").atLeast(Math.round(article.getLikeCount() * 0.8f))
-                .boost(1.2f));
-      }
-      if (!tagNames.isEmpty()) {
-        bool.should(f.terms().fields("tags.name").matchingAny(tagNames)
-            .boost(tagNames.size() > 3 ? 3.5f : 2.0f));
-      }
-      if (!categoryNames.isEmpty()) {
-        bool.should(f.terms().fields("categories.id").matchingAny(categoryNames)
-            .boost(categoryNames.size() > 1 ? 3.4f : 2.0f));
-      }
-      bool.minimumShouldMatchNumber(1);
-      return bool;
-    }).sort(f -> f.composite(b -> {
-      b.add(f.score().desc());
-      b.add(f.field("likeCount").desc());
-      b.add(f.field("createdAt").desc());
-    })).fetch(recommendationLimit);
-    List<ArticleModel> recommendedArticles = result.hits();
+    SearchResult<ArticleScoreProjection> result = searchSession.search(ArticleModel.class)
+        .select(f -> f.composite().from(f.score(), f.entity()).as(ArticleScoreProjection::new))
+        .where(f -> {
+          BooleanPredicateClausesStep<?> bool = f.bool()
+              .must(f.match().field("status").matching(Status.PUBLISHED))
+              .mustNot(f.match().field("id").matching(articleId))
+              .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
+              .should(f.simpleQueryString().fields("title", "tags.name").matching(combinedKeywords)
+                  .defaultOperator(BooleanOperator.OR).boost(1.0f))
+              .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(10.0f))
+              .should(f.match().field("content").matching(article.getContent()).boost(0.00002f));
+          if (article.getLikeCount() != null) {
+            bool.should(
+                f.range().field("likeCount").atLeast(Math.round(article.getLikeCount() * 0.8f))
+                    .boost(1.2f));
+          }
+          if (!tagNames.isEmpty()) {
+            bool.should(f.terms().fields("tags.name").matchingAny(tagNames)
+                .boost(tagNames.size() > 3 ? 5.0f : 1.0f));
+          }
+          if (!categoryNames.isEmpty()) {
+            bool.should(f.terms().fields("categories.id").matchingAny(categoryNames)
+                .boost(categoryNames.size() > 1 ? 5.0f : 3.5f));
+          }
+          bool.minimumShouldMatchNumber(1);
+          return bool;
+        }).sort(f -> f.composite(b -> {
+          b.add(f.score().desc());
+          b.add(f.field("likeCount").desc());
+          b.add(f.field("createdAt").desc());
+        })).fetch(recommendationLimit);
+    List<ArticleModel> recommendedArticles = result.hits().stream()
+        .peek(hit -> log.info("Score: {} {}", hit.score(), hit.articleModel().getTitle()))
+        .filter(hit -> hit.score() > 35.0f).map(ArticleScoreProjection::articleModel).toList();
     return recommendedArticles.stream()
         .map(articleModel -> convertArticleModelToDTO(articleModel, userModel))
         .map(this::preparePreview).toList();
-  }
-
-  //TODO optimize models cashing
-  private Set<String> extractKeywords(String text) {
-    try {
-      Resource resourcePos = new ClassPathResource(opennlpModelsPathPos);
-      Resource resourceLemmas = new ClassPathResource(opennlpModelsPathLemmas);
-      try (InputStream posModelIn = resourcePos.getInputStream(); InputStream lemmasModelIn = resourceLemmas.getInputStream()) {
-        POSModel posModel = new POSModel(posModelIn);
-        POSTaggerME posTagger = new POSTaggerME(posModel);
-        LemmatizerModel lemmatizerModel = new LemmatizerModel(lemmasModelIn);
-        LemmatizerME lemmatizer = new LemmatizerME(lemmatizerModel);
-        SimpleTokenizer tokenizer = SimpleTokenizer.INSTANCE;
-        String[] tokens = tokenizer.tokenize(text);
-        String[] postags = posTagger.tag(tokens);
-        String[] lemmas = lemmatizer.lemmatize(tokens, postags);
-        Set<String> keywords = new HashSet<>();
-        for (int i = 0; i < lemmas.length; i++) {
-          if (postags[i].startsWith("N") || postags[i].startsWith("X")) {
-            String lemma = lemmas[i].toLowerCase();
-            if (lemma.length() > 2) {
-              keywords.add(lemma);
-            }
-          }
-        }
-        return keywords;
-      }
-    } catch (IOException e) {
-      throw new RuntimeException("Failed to load POS model", e);
-    }
   }
 
   @Transactional
