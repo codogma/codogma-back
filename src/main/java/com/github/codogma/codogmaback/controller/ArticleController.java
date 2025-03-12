@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -117,10 +116,7 @@ public class ArticleController {
   @PostMapping("/{id:\\d+}/record-view")
   @Operation(summary = "Record article view")
   public ResponseEntity<GetArticle> recordView(@PathVariable Long id,
-      @AuthenticationPrincipal UserModel userModel, HttpServletRequest request) {
-    String ipAddress = request.getRemoteAddr();
-    String userAgent = request.getHeader("User-Agent");
-    log.info("IP address: {}, User-Agent: {}", ipAddress, userAgent);
+      @AuthenticationPrincipal UserModel userModel) {
     GetArticle article = articleService.recordView(id, userModel);
     return ResponseEntity.ok(article);
   }

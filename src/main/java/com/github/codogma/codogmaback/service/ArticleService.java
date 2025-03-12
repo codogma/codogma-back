@@ -1,7 +1,5 @@
 package com.github.codogma.codogmaback.service;
 
-import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
-
 import com.github.codogma.codogmaback.dto.CompilationsDTO;
 import com.github.codogma.codogmaback.dto.CreateDraftArticle;
 import com.github.codogma.codogmaback.dto.GetArticle;
@@ -36,6 +34,7 @@ import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
 import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpecifications;
+import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
 import com.github.codogma.codogmaback.util.KeywordExtractor;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
@@ -57,6 +56,9 @@ import org.hibernate.search.engine.search.query.SearchResult;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -85,6 +87,7 @@ public class ArticleService {
   private final TagRepository tagRepository;
   private final UserRepository userRepository;
   private final ContentBasedRecommender contentBasedRecommender;
+  private final JCacheCacheManager jCacheCacheManager;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -92,6 +95,7 @@ public class ArticleService {
   private int recommendationLimit;
 
   @Transactional
+  @Cacheable(value = "articles", key = "T(java.util.Objects).hash(#order, #sort, #page, #size, #categoryId, #compilationId, #tag, #username, #isFeed, #content, #userModel?.id)", condition = "#content == null || #content.isEmpty()", unless = "#result == null || #result.isEmpty()")
   public Page<GetArticle> getArticles(String order, String sort, int page, int size,
       Long categoryId, Long compilationId, String tag, String username, Boolean isFeed,
       UserModel userModel, String content) {
@@ -108,7 +112,8 @@ public class ArticleService {
         .map(this::preparePreview);
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
+  @Cacheable(value = "viewedArticles", key = "T(java.util.Objects).hash(#order, #sort, #page, #size, #tag, #content, #userModel?.id)", condition = "#content == null || #content.isEmpty()", unless = "#result == null || #result.isEmpty()")
   public Page<GetArticle> getViewedArticles(String order, String sort, int page, int size,
       String tag, String content, UserModel userModel) {
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
@@ -150,6 +155,7 @@ public class ArticleService {
   }
 
   @Transactional
+  @Cacheable(value = "articleById", key = "{#articleId, #userModel?.id}")
   public GetArticle getArticleById(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -165,6 +171,7 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = "articleById", allEntries = true)
   public void like(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -179,6 +186,7 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = "articleById", allEntries = true)
   public void unlike(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -190,6 +198,7 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(value = "viewedArticles", key = "#articleId")
   public GetArticle recordView(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -203,6 +212,7 @@ public class ArticleService {
   }
 
   @Transactional
+  @Cacheable(value = "recommendations", key = "#articleId")
   public List<GetArticle> getRecommendationsForArticle(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -252,6 +262,7 @@ public class ArticleService {
         .map(this::preparePreview).toList();
   }
 
+  // TODO: fix this method
   @Transactional
   public List<GetArticle> getRecommendations(UserModel user) {
     if (user == null) {
@@ -263,6 +274,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
+      "recommendations"}, key = "{#articleId, #userModel.id}", condition = "#userModel != null")
   public GetArticle getDraftedArticleById(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -351,6 +364,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
+      "recommendations"}, key = "{#articleId, #userModel.id}", condition = "#userModel != null")
   public void publishArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -372,6 +387,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
+      "recommendations"}, key = "{#articleId, #userModel.id}", condition = "#userModel != null")
   public void hideArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -387,6 +404,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
+      "recommendations"}, key = "#articleId")
   public void blockArticle(Long articleId) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -399,6 +418,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
+      "recommendations"}, key = "#articleId")
   public void unblockArticle(Long articleId) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -474,6 +495,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
+      "recommendations"}, key = "{#articleId, #userModel.id}", condition = "#userModel != null")
   public void deleteArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -485,6 +508,8 @@ public class ArticleService {
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"articles",
+      "articleById"}, key = "{#articleId, #userModel.id}", condition = "#userModel != null")
   public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
     List<Long> compilationIdsToAddOrRemove = compilations.getCompilationIds();
     List<CompilationModel> compilationModelList = compilationRepository.findAllByIdInAndUser(

@@ -54,9 +54,12 @@ public class UserService {
   public Page<GetUser> getUsers(Long categoryId, String targetUsername, UserRole role, String tag,
       String info, int page, int size, String sort, String order, Boolean isSubscriptions,
       Boolean isSubscribers, UserModel userModel) {
-    String foundUsername = targetUsername != null ? targetUsername : userModel.getUsername();
-    UserModel foundUser = userModel != null ? userRepository.findByUsername(foundUsername)
-        .orElseThrow(() -> exceptionFactory.userNotFound(foundUsername)) : null;
+    UserModel foundUser = null;
+    if (userModel != null) {
+      String foundUsername = targetUsername != null ? targetUsername : userModel.getUsername();
+      foundUser = userRepository.findByUsername(foundUsername)
+          .orElseThrow(() -> exceptionFactory.userNotFound(foundUsername));
+    }
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
     Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
     List<Long> usersIds = null;
