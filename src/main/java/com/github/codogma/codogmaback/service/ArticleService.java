@@ -57,7 +57,6 @@ import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
@@ -201,7 +200,7 @@ public class ArticleService {
   }
 
   @Transactional
-  @CachePut(value = "viewedArticles", key = "{#articleId, #userModel?.id}")
+  @CacheEvict(value = "viewedArticles", allEntries = true)
   public GetArticle recordView(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
