@@ -122,7 +122,7 @@ public class ArticleService {
         userModel);
     Page<ArticleView> views = articleViewRepository.findAll(spec, pageable);
     return views.map(view -> convertArticleModelToDTO(view.getArticle(), userModel))
-        .map(this::preparePreview);
+        .map(this::withoutPreview);
   }
 
   private List<Long> getArticleIds(String content) {
@@ -143,6 +143,12 @@ public class ArticleService {
     } else {
       article.setPreviewContent(article.getPreviewContent());
     }
+    article.setContent(null);
+    return article;
+  }
+
+  private GetArticle withoutPreview(GetArticle article) {
+    article.setPreviewContent(null);
     article.setContent(null);
     return article;
   }
