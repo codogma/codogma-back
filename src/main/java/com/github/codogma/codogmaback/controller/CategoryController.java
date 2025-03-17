@@ -49,15 +49,16 @@ public class CategoryController {
       @Parameter(name = "size", description = "Number of categories per page"),
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
-  public ResponseEntity<Page<GetCategory>> getCategories(
-      @RequestParam(required = false) String tag, @RequestParam(required = false) String info,
+  public ResponseEntity<Page<GetCategory>> getCategories(@RequestParam(required = false) String tag,
+      @RequestParam(required = false) String info,
       @RequestParam(required = false) Boolean isFavorite,
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
-      @RequestParam(defaultValue = "name") String sort,
+      //TODO исправить сортировку по названию
+      @RequestParam(defaultValue = "createdAt") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetCategory> categories = categoryService.getCategories(order, sort, page, size, tag,
-        info, isFavorite, userModel);
+    Page<GetCategory> categories = categoryService.getCategories(order, sort, page, size, tag, info,
+        isFavorite, userModel);
     return ResponseEntity.ok(categories);
   }
 
@@ -100,10 +101,11 @@ public class CategoryController {
   @Operation(summary = "Update the category")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  public ResponseEntity<String> updateCategory(@PathVariable Long id,
-      @Valid @ModelAttribute UpdateCategory updateCategoryDTO) {
-    categoryService.updateCategory(id, updateCategoryDTO);
-    return new ResponseEntity<>("Category updated successfully", HttpStatus.OK);
+  public ResponseEntity<GetCategory> updateCategory(@PathVariable Long id,
+      @Valid @ModelAttribute UpdateCategory updateCategoryDTO,
+      @AuthenticationPrincipal UserModel userModel) {
+    GetCategory updatedCategory = categoryService.updateCategory(id, updateCategoryDTO, userModel);
+    return new ResponseEntity<>(updatedCategory, HttpStatus.OK);
   }
 
   @DeleteMapping("/{id:\\d+}")

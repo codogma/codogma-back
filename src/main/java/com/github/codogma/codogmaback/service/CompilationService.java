@@ -23,6 +23,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +49,7 @@ public class CompilationService {
   private int searchResultsLimit;
 
   @Transactional
+  @Cacheable(value = "compilations", key = "{#order, #sort, #page, #size, #tag, #content, #isBookmarked, #username, #userModel?.id}", unless = "#result == null || #result.isEmpty()")
   public Page<GetCompilation> getCompilations(String tag, String content, String username,
       Boolean isBookmarked, int page, int size, String sort, String order, UserModel userModel) {
     UserModel foundUser = userModel != null ? userRepository.findById(userModel.getId())
@@ -66,18 +70,21 @@ public class CompilationService {
   }
 
   @Transactional
-  public List<GetCompilation> getCompilationsByTitle(String name, UserModel user) {
-    return compilationRepository.findTop10ByTitleStartingWithIgnoreCaseAndUser(name, user).stream()
+  @Cacheable(value = "compilationsByTitle", key = "#title")
+  public List<GetCompilation> getCompilationsByTitle(String title, UserModel user) {
+    return compilationRepository.findTop10ByTitleStartingWithIgnoreCaseAndUser(title, user).stream()
         .map(this::convertCompilationToDTO).toList();
   }
 
   @Transactional
-  public Optional<GetCompilation> getCompilationById(Long id, UserModel userModel) {
-    return compilationRepository.findById(id)
+  @Cacheable(value = "compilationById", key = "{#compilationId, #userModel?.id}")
+  public Optional<GetCompilation> getCompilationById(Long compilationId, UserModel userModel) {
+    return compilationRepository.findById(compilationId)
         .map(categoryModel -> convertCompilationToDTO(categoryModel, userModel));
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"compilations", "compilationsByTitle"}, allEntries = true)
   public void createCompilation(CreateCompilation createCompilation, UserModel userModel) {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
@@ -87,8 +94,12 @@ public class CompilationService {
   }
 
   @Transactional
-  public void updateCompilation(Long id, UpdateCompilation updateCompilation, UserModel userModel) {
-    CompilationModel compilation = compilationRepository.findById(id)
+  @Caching(evict = {
+      @CacheEvict(cacheNames = {"compilations", "compilationsByTitle"}, allEntries = true),
+      @CacheEvict(value = "compilationById", key = "{#compilationId, #userModel.id}")})
+  public void updateCompilation(Long compilationId, UpdateCompilation updateCompilation,
+      UserModel userModel) {
+    CompilationModel compilation = compilationRepository.findById(compilationId)
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
     if (!userModel.getId().equals(compilation.getUser().getId())) {
       throw exceptionFactory.notAllowedToEdit(compilation.getId());
@@ -102,8 +113,9 @@ public class CompilationService {
   }
 
   @Transactional
-  public void deleteCompilation(Long id, UserModel userModel) {
-    CompilationModel compilation = compilationRepository.findById(id)
+  @CacheEvict(cacheNames = {"compilations", "compilationsByTitle"}, allEntries = true)
+  public void deleteCompilation(Long compilationId, UserModel userModel) {
+    CompilationModel compilation = compilationRepository.findById(compilationId)
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
     if (!userModel.getId().equals(compilation.getUser().getId())) {
       throw exceptionFactory.notAllowedToEdit(compilation.getId());
@@ -113,9 +125,11 @@ public class CompilationService {
   }
 
   @Transactional
-  public GetCompilation bookmark(Long articleId, UserModel userModel) {
-    CompilationModel compilation = compilationRepository.findById(articleId)
-        .orElseThrow(() -> exceptionFactory.compilationNotFound(articleId));
+  @Caching(evict = {@CacheEvict(value = "compilations", allEntries = true),
+      @CacheEvict(value = "categoryById", key = "{#compilationId, #userModel.id}")})
+  public GetCompilation bookmark(Long compilationId, UserModel userModel) {
+    CompilationModel compilation = compilationRepository.findById(compilationId)
+        .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
     boolean bookmarkExists = bookmarkRepository.existsByUserAndCompilation(userModel, compilation);
     if (bookmarkExists) {
       throw new BookmarkAlreadyExistsException("Compilation already bookmarked");
@@ -127,9 +141,11 @@ public class CompilationService {
   }
 
   @Transactional
-  public GetCompilation unbookmark(Long articleId, UserModel userModel) {
-    CompilationModel compilation = compilationRepository.findById(articleId)
-        .orElseThrow(() -> exceptionFactory.compilationNotFound(articleId));
+  @Caching(evict = {@CacheEvict(value = "compilations", allEntries = true),
+      @CacheEvict(value = "categoryById", key = "{#compilationId, #userModel.id}")})
+  public GetCompilation unbookmark(Long compilationId, UserModel userModel) {
+    CompilationModel compilation = compilationRepository.findById(compilationId)
+        .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
     bookmarkRepository.deleteByUserAndCompilation(userModel, compilation);
     return convertCompilationToDTO(compilation, userModel);
   }

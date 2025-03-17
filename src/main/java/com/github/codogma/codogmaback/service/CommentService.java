@@ -23,6 +23,8 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -45,6 +47,7 @@ public class CommentService {
   private final UserRepository userRepository;
 
   @Transactional
+  @Cacheable(value = "comments", key = "{#order, #sort, #page, #size, #content, #articleId, #username, #userModel?.id}", unless = "#result == null || #result.isEmpty()")
   public Page<GetComment> getComments(Long articleId, String username, String content, int page,
       int size, String sort, String order, UserModel userModel) {
     Page<GetComment> comments = null;
@@ -60,8 +63,7 @@ public class CommentService {
       spec = Specification.where(CommentSpecifications.hasArticleId(articleId))
           .and(CommentSpecifications.isRootComment())
           .and(CommentSpecifications.hasAccess(currentUsername, isAdmin, articleAuthorUsername));
-      comments = commentRepository.findAll(spec, pageable)
-          .map(this::convertCommentModelToDTO);
+      comments = commentRepository.findAll(spec, pageable).map(this::convertCommentModelToDTO);
     }
     if (username != null) {
       UserModel foundUser = userRepository.findByUsername(username).orElseThrow(
@@ -78,6 +80,7 @@ public class CommentService {
   }
 
   @Transactional
+  @CacheEvict(value = "comments", allEntries = true)
   public GetComment createComment(CreateComment createComment, UserModel userModel) {
     ArticleModel article = articleRepository.findById(createComment.getArticleId())
         .orElseThrow(() -> new ArticleNotFoundException("Article not found"));
@@ -132,6 +135,7 @@ public class CommentService {
   }
 
   @Transactional
+  @CacheEvict(value = "comments", allEntries = true)
   public GetComment publishComment(Long commentId) {
     CommentModel comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException("Comment not found by id " + commentId));
@@ -141,6 +145,7 @@ public class CommentService {
   }
 
   @Transactional
+  @CacheEvict(value = "comments", allEntries = true)
   public GetComment blockComment(Long commentId) {
     CommentModel comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException("Comment not found by id " + commentId));
@@ -150,6 +155,7 @@ public class CommentService {
   }
 
   @Transactional
+  @CacheEvict(value = "comments", allEntries = true)
   public GetComment updateComment(Long commentId, UpdateComment updateComment,
       UserModel userModel) {
     CommentModel comment = commentRepository.findById(commentId)
@@ -164,6 +170,7 @@ public class CommentService {
   }
 
   @Transactional
+  @CacheEvict(value = "comments", allEntries = true)
   public void deleteComment(Long commentId, UserDetails userDetails) {
     CommentModel comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException("Comment not found by id " + commentId));

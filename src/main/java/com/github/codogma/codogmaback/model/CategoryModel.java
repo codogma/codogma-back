@@ -31,6 +31,7 @@ import lombok.ToString;
 import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.search.engine.backend.types.Sortable;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
@@ -73,9 +74,11 @@ public class CategoryModel {
   @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
   @Exclude
   private List<FavoriteModel> favorites = new ArrayList<>();
+  @GenericField(sortable = Sortable.YES)
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
   private LocalDateTime createdAt;
+  @GenericField(sortable = Sortable.YES)
   @UpdateTimestamp
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;

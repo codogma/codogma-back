@@ -62,7 +62,7 @@ public class CommentController {
   @PostMapping
   @Operation(summary = "Add a new comment")
   @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR', 'ROLE_ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   public ResponseEntity<GetComment> createComment(@Valid @RequestBody CreateComment createComment,
       @AuthenticationPrincipal UserModel userModel) {
     GetComment comment = commentService.createComment(createComment, userModel);
@@ -88,7 +88,7 @@ public class CommentController {
   @PutMapping("/{commentId}")
   @Operation(summary = "Update the comment")
   @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR', 'ROLE_ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   public GetComment updateComment(@PathVariable Long commentId,
       @Valid @RequestBody UpdateComment updateComment,
       @AuthenticationPrincipal UserModel userModel) {
@@ -98,7 +98,7 @@ public class CommentController {
   @DeleteMapping("/{commentId}")
   @Operation(summary = "Delete the comment")
   @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR', 'ROLE_ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   public void deleteComment(@PathVariable Long commentId,
       @AuthenticationPrincipal UserDetails userDetails) {
     commentService.deleteComment(commentId, userDetails);

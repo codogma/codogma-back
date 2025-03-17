@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -34,6 +36,7 @@ public class NotificationService {
   private final LocalizationUtil localizationUtil;
 
   @Transactional
+  @Cacheable(value = "notifications", key = "{#order, #sort, #page, #size, #isRead, #userModel?.id}", unless = "#result == null || #result.isEmpty()")
   public Page<GetNotification> getNotifications(String order, String sort, int page, int size,
       Boolean isRead, UserModel userModel) {
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
@@ -54,6 +57,7 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void createNotification(CreateNotification createNotification) {
     NotificationModel notification = NotificationModel.builder()
         .title(createNotification.getTitle()).message(createNotification.getMessage())
@@ -62,6 +66,7 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void updateNotification(Long notificationId, UpdateNotification updateNotification) {
     NotificationModel notification = notificationRepository.findById(notificationId)
         .orElseThrow(() -> new RuntimeException("Notification not found"));
@@ -73,6 +78,7 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public GetNotification markAsRead(Long notificationId, UserModel userModel) {
     NotificationModel notification = notificationRepository.findByIdAndRecipient(notificationId,
         userModel.getUsername()).orElseThrow(() -> new RuntimeException("Notification not found"));
@@ -82,6 +88,7 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void markAllAsRead(UserModel userModel) {
     List<NotificationModel> notifications = notificationRepository.findByRecipientAndIsReadIsFalse(
         userModel.getUsername());
@@ -90,11 +97,13 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void deleteReadNotifications(UserModel userModel) {
     notificationRepository.deleteByRecipientAndIsReadIsTrue(userModel.getUsername());
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void deleteSystemNotification(Long id) {
     notificationRepository.deleteByTypeAndId(NotificationType.SYSTEM, id);
     GetNotification payload = GetNotification.builder().id(id).title("delete")
@@ -103,12 +112,14 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void deleteNotification(Long id, UserModel userModel) {
     notificationRepository.deleteByRecipientAndTypeNotAndId(userModel.getUsername(),
         NotificationType.SYSTEM, id);
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void deleteAllSystemNotifications() {
     notificationRepository.deleteByType(NotificationType.SYSTEM);
     GetNotification payload = GetNotification.builder().title("delete")
@@ -117,6 +128,7 @@ public class NotificationService {
   }
 
   @Transactional
+  @CacheEvict(value = "notifications", allEntries = true)
   public void saveAndSendToPrivate(String username, NotificationModel notification) {
     NotificationModel saved = notificationRepository.save(notification);
     GetNotification payload = convertNotificationModelToDTO(saved);

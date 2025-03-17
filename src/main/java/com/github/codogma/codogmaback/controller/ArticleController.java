@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -72,7 +71,7 @@ public class ArticleController {
   }
 
   @GetMapping("/viewed")
-  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR', 'ROLE_ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   @Operation(summary = "Get viewed articles", description = "Retrieve all viewed articles. Supports pagination and multiple filter combinations to narrow down search results.")
   @Parameters({@Parameter(name = "tag", description = "Tag to filter articles"),
       @Parameter(name = "content", description = "Content to filter articles"),
@@ -117,10 +116,7 @@ public class ArticleController {
   @PostMapping("/{id:\\d+}/record-view")
   @Operation(summary = "Record article view")
   public ResponseEntity<GetArticle> recordView(@PathVariable Long id,
-      @AuthenticationPrincipal UserModel userModel, HttpServletRequest request) {
-    String ipAddress = request.getRemoteAddr();
-    String userAgent = request.getHeader("User-Agent");
-    log.info("IP address: {}, User-Agent: {}", ipAddress, userAgent);
+      @AuthenticationPrincipal UserModel userModel) {
     GetArticle article = articleService.recordView(id, userModel);
     return ResponseEntity.ok(article);
   }

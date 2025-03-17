@@ -79,6 +79,11 @@ spring:
             token-uri: https://gitlab.com/oauth/token
             user-info-uri: https://gitlab.com/api/v4/user
             user-name-attribute: id
+  cache:
+    jcache:
+      provider: org.ehcache.jsr107.EhcacheCachingProvider
+      tti-minutes: 60
+      max-heap-entries: 1000
 
 server:
   servlet:
@@ -92,8 +97,21 @@ logging:
       springframework:
         security: DEBUG
         web: DEBUG
+        cache: DEBUG
+      ehcache: DEBUG
     com:
       yourpackage: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,caches,metrics
+  endpoint:
+    caches:
+      access: read_only
+    metrics:
+      access: read_only
 
 user:
   avatar:
