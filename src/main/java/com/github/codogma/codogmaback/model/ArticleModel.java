@@ -109,6 +109,7 @@ public class ArticleModel {
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
   private LocalDateTime createdAt;
+  @GenericField(sortable = Sortable.YES)
   @UpdateTimestamp
   @Column(name = "updated_at")
   private LocalDateTime updatedAt;

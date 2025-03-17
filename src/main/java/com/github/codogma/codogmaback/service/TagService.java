@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -17,6 +18,7 @@ public class TagService {
   private final TagRepository tagRepository;
 
   @Transactional
+  @Cacheable(value = "tagsByName", key = "#name")
   public List<GetTag> getTagsByNameContaining(String name) {
     return tagRepository.findTop10ByNameStartingWithIgnoreCase(name).stream()
         .map(this::convertTagToDTO).toList();

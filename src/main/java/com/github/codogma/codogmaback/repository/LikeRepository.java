@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface LikeRepository extends JpaRepository<LikeModel, Long> {
 
-  boolean existsByUserAndArticle(UserModel userModel, ArticleModel articleModel);
+  Boolean existsByUserAndArticle(UserModel userModel, ArticleModel articleModel);
 
   Optional<LikeModel> findByArticleAndUser(ArticleModel article, UserModel user);
 }

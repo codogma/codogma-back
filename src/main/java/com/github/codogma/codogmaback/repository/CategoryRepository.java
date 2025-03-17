@@ -33,5 +33,5 @@ public interface CategoryRepository extends JpaRepository<CategoryModel, Long>,
       "LEFT JOIN FETCH n.name " +
       "LEFT JOIN FETCH n.description " +
       "WHERE n.id = :id")
-  Optional<CategoryModel> findByIdWithCollections(@Param("id") Long userId);
+  Optional<CategoryModel> findByIdWithCollections(@Param("id") Long categoryId);
 }

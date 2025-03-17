@@ -71,7 +71,7 @@ public class ArticleController {
   }
 
   @GetMapping("/viewed")
-  @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR', 'ROLE_ADMIN')")
+  @PreAuthorize("isAuthenticated()")
   @Operation(summary = "Get viewed articles", description = "Retrieve all viewed articles. Supports pagination and multiple filter combinations to narrow down search results.")
   @Parameters({@Parameter(name = "tag", description = "Tag to filter articles"),
       @Parameter(name = "content", description = "Content to filter articles"),

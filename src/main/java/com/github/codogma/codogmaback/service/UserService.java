@@ -23,6 +23,9 @@ import lombok.RequiredArgsConstructor;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +54,7 @@ public class UserService {
   private int searchResultsLimit;
 
   @Transactional
+  @Cacheable(value = "users", key = "{#order, #sort, #page, #size, #categoryId, #targetUsername, #tag, #info, #role, #isSubscriptions, #isSubscribers, #userModel?.id}", condition = "#info == null || #info.isEmpty()", unless = "#result == null || #result.isEmpty()")
   public Page<GetUser> getUsers(Long categoryId, String targetUsername, UserRole role, String tag,
       String info, int page, int size, String sort, String order, Boolean isSubscriptions,
       Boolean isSubscribers, UserModel userModel) {
@@ -77,12 +81,15 @@ public class UserService {
   }
 
   @Transactional
+  @Cacheable(value = "userByUsername", key = "{#username, #userModel?.id}")
   public Optional<GetUser> getUserByUsername(String username, UserModel userModel) {
     return userRepository.findByUsername(username)
         .map(foundUser -> convertUserModelToDto(foundUser, userModel));
   }
 
   @Transactional
+  @Caching(evict = {@CacheEvict(value = "users", allEntries = true),
+      @CacheEvict(value = "userByUsername", key = "{#updateUser.username, #userModel.id}")})
   public GetUser updateUser(UpdateUser updateUser, UserModel userModel,
       BindingResult bindingResult) {
     if (updateUser.getUsername() != null && !updateUser.getUsername()
@@ -131,11 +138,14 @@ public class UserService {
   }
 
   @Transactional
+  @CacheEvict(value = "users", allEntries = true)
   public void deleteUser(String username) {
     userRepository.deleteByUsername(username);
   }
 
   @Transactional
+  @Caching(evict = {@CacheEvict(value = "users", allEntries = true),
+      @CacheEvict(value = "userByUsername", key = "{#targetUsername, #subscriber.id}")})
   public GetUser subscribe(String targetUsername, UserModel subscriber) {
     if (subscriber.getUsername().equals(targetUsername)) {
       throw exceptionFactory.userCannotSubscribeToThemselves();
@@ -154,6 +164,8 @@ public class UserService {
   }
 
   @Transactional
+  @Caching(evict = {@CacheEvict(value = "users", allEntries = true),
+      @CacheEvict(value = "userByUsername", key = "{#targetUsername, #subscriber.id}")})
   public GetUser unsubscribe(String targetUsername, UserModel subscriber) {
     UserModel targetUser = userRepository.findByUsername(targetUsername)
         .orElseThrow(() -> exceptionFactory.targetUserNotFound(targetUsername));

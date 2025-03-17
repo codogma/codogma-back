@@ -31,6 +31,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.search.mapper.orm.Search;
 import org.hibernate.search.mapper.orm.session.SearchSession;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -57,12 +60,21 @@ public class CategoryService {
   private int searchResultsLimit;
 
   @Transactional
+  @Cacheable(value = "categories", key = "{#order, #sort, #page, #size, #tag, #info, #isFavorite, #userModel?.id, @localizationContext.language.code}", condition = "#info == null || #info.isEmpty()", unless = "#result == null || #result.isEmpty()")
   public Page<GetCategory> getCategories(String order, String sort, int page, int size, String tag,
       String info, Boolean isFavorite, UserModel userModel) {
     UserModel foundUser = userModel != null ? userRepository.findById(userModel.getId())
         .orElseThrow(() -> exceptionFactory.userNotFound(userModel.getUsername())) : null;
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
     Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
+    List<Long> categoryIds = getCategoryIds(info);
+    Specification<CategoryModel> spec = CategorySpecifications.buildSpecification(tag, categoryIds,
+        isFavorite, foundUser);
+    return categoryRepository.findAll(spec, pageable)
+        .map(categoryModel -> convertCategoryToDTO(categoryModel, userModel));
+  }
+
+  private List<Long> getCategoryIds(String info) {
     List<Long> categoryIds = null;
     if (info != null && !info.isEmpty()) {
       SearchSession searchSession = Search.session(entityManager);
@@ -70,13 +82,11 @@ public class CategoryService {
           .where(f -> f.match().fields("name", "description").matching(info).fuzzy(1))
           .fetchHits(searchResultsLimit).stream().map(CategoryModel::getId).toList();
     }
-    Specification<CategoryModel> spec = CategorySpecifications.buildSpecification(tag, categoryIds,
-        isFavorite, foundUser);
-    return categoryRepository.findAll(spec, pageable)
-        .map(categoryModel -> convertCategoryToDTO(categoryModel, userModel));
+    return categoryIds;
   }
 
   @Transactional
+  @Cacheable(value = "categoriesByName", key = "{#name, @localizationContext.language.code}")
   public List<GetCategory> getCategoriesByNameContaining(String name) {
     Language interfaceLanguage = localizationContext.getLanguage();
     return categoryRepository.findTop10ByNameStartingWithIgnoreCase(interfaceLanguage.name(), name)
@@ -84,20 +94,22 @@ public class CategoryService {
   }
 
   @Transactional
-  public Optional<GetCategory> getCategoryById(Long id, UserModel userModel) {
-    return categoryRepository.findById(id)
+  @Cacheable(value = "categoryById", key = "{#categoryId, #userModel?.id, @localizationContext.language.code}")
+  public Optional<GetCategory> getCategoryById(Long categoryId, UserModel userModel) {
+    return categoryRepository.findById(categoryId)
         .map(categoryModel -> convertCategoryToDTO(categoryModel, userModel));
   }
 
   @Transactional
-  public Optional<GetCategoryToUpdate> getCategoryByIdToUpdate(Long id) {
-    return categoryRepository.findByIdWithCollections(id).map(
+  public Optional<GetCategoryToUpdate> getCategoryByIdToUpdate(Long categoryId) {
+    return categoryRepository.findByIdWithCollections(categoryId).map(
         categoryModel -> GetCategoryToUpdate.builder().name(categoryModel.getName())
             .imageUrl(categoryModel.getImageUrl()).description(categoryModel.getDescription())
             .build());
   }
 
   @Transactional
+  @CacheEvict(cacheNames = {"categories", "categoriesByName"}, allEntries = true)
   public GetCategory createCategory(CreateCategory createCategory, UserModel userModel) {
     CategoryModel category = CategoryModel.builder().name(createCategory.getName())
         .description(createCategory.getDescription()).build();
@@ -108,27 +120,34 @@ public class CategoryService {
   }
 
   @Transactional
-  public void updateCategory(Long id, UpdateCategory updateCategory) {
-    CategoryModel category = categoryRepository.findById(id)
+  @Caching(evict = {@CacheEvict(cacheNames = {"categories", "categoriesByName"}, allEntries = true),
+      @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
+  public GetCategory updateCategory(Long categoryId, UpdateCategory updateCategory,
+      UserModel userModel) {
+    CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     Optional.ofNullable(updateCategory.getName()).ifPresent(category::setName);
     Optional.ofNullable(updateCategory.getDescription()).ifPresent(category::setDescription);
     Optional.ofNullable(updateCategory.getImage()).filter(image -> !image.isEmpty())
         .map(fileUploadUtil::uploadCategoryAvatar).ifPresent(category::setImageUrl);
     categoryRepository.save(category);
+    return convertCategoryToDTO(category, userModel);
   }
 
   @Transactional
-  public void deleteCategory(Long id) {
-    CategoryModel category = categoryRepository.findById(id)
+  @CacheEvict(cacheNames = {"categories", "categoriesByName"}, allEntries = true)
+  public void deleteCategory(Long categoryId) {
+    CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(EntityNotFoundException::new);
     category.getArticles().forEach(article -> article.getCategories().remove(category));
     categoryRepository.delete(category);
   }
 
   @Transactional
-  public GetCategory addToFavorite(Long id, UserModel userModel) {
-    CategoryModel category = categoryRepository.findById(id)
+  @Caching(evict = {@CacheEvict(value = "categories", allEntries = true),
+      @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
+  public GetCategory addToFavorite(Long categoryId, UserModel userModel) {
+    CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     boolean favoriteExists = favoriteRepository.existsByUserAndCategory(userModel, category);
     if (favoriteExists) {
@@ -140,8 +159,10 @@ public class CategoryService {
   }
 
   @Transactional
-  public GetCategory unfavorite(Long id, UserModel userModel) {
-    CategoryModel category = categoryRepository.findById(id)
+  @Caching(evict = {@CacheEvict(value = "categories", allEntries = true),
+      @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
+  public GetCategory unfavorite(Long categoryId, UserModel userModel) {
+    CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     favoriteRepository.deleteByUserAndCategory(userModel, category);
     return convertCategoryToDTO(category, userModel);
