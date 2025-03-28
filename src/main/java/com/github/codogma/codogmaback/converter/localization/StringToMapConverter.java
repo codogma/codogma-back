@@ -5,20 +5,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.codogma.codogmaback.model.Language;
 import java.io.IOException;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class StringToMapConverter implements Converter<String, Map<Language, String>> {
 
   private final ObjectMapper objectMapper;
 
-  public StringToMapConverter(ObjectMapper objectMapper) {
-    this.objectMapper = objectMapper;
-  }
-
   @Override
-  public Map<Language, String> convert(String source) {
+  public Map<Language, String> convert(@NonNull String source) {
     try {
       return objectMapper.readValue(source, new TypeReference<>() {
       });

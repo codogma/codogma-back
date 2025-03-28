@@ -178,6 +178,16 @@ public class ArticleController {
     return ResponseEntity.noContent().build();
   }
 
+  @PutMapping("/{id:\\d+}")
+  @Operation(summary = "Update the article")
+  @SecurityRequirement(name = "bearerAuth")
+  @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
+  public ResponseEntity<Void> updateArticle(@PathVariable Long id,
+      @Valid @RequestBody UpdateArticle article, @AuthenticationPrincipal UserModel userModel) {
+    articleService.updateArticle(id, article, userModel);
+    return ResponseEntity.noContent().build();
+  }
+
   @PatchMapping("/{id:\\d+}/publish")
   @Operation(summary = "Publish the article")
   @SecurityRequirement(name = "bearerAuth")
@@ -213,16 +223,6 @@ public class ArticleController {
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> unblockArticle(@PathVariable Long id) {
     articleService.unblockArticle(id);
-    return ResponseEntity.noContent().build();
-  }
-
-  @PutMapping("/{id:\\d+}")
-  @Operation(summary = "Update the article")
-  @SecurityRequirement(name = "bearerAuth")
-  @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
-  public ResponseEntity<Void> updateArticle(@PathVariable Long id,
-      @Valid @RequestBody UpdateArticle article, @AuthenticationPrincipal UserModel userModel) {
-    articleService.updateArticle(id, article, userModel);
     return ResponseEntity.noContent().build();
   }
 

@@ -27,6 +27,9 @@ public class CreateArticle {
   @NotNull(message = "Title cannot be empty")
   @Schema(description = "Title of the article", example = "My First Blog Article", requiredMode = RequiredMode.REQUIRED)
   private String title;
+  @NotNull(message = "Article's preview image cannot be empty")
+  @Schema(description = "Article's preview image", requiredMode = RequiredMode.REQUIRED)
+  private String imageUrl;
   @NotNull(message = "Preview content cannot be empty")
   @Schema(description = "Preview content of the article", example = "This is the preview content of the article", requiredMode = RequiredMode.REQUIRED)
   private String previewContent;

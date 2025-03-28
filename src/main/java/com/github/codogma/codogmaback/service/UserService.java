@@ -82,13 +82,16 @@ public class UserService {
 
   @Transactional
   @Cacheable(value = "userByUsername", key = "{#username, #userModel?.id}")
-  public Optional<GetUser> getUserByUsername(String username, UserModel userModel) {
-    return userRepository.findByUsername(username)
-        .map(foundUser -> convertUserModelToDto(foundUser, userModel));
+  public GetUser getUserByUsername(String username, UserModel userModel) {
+    UserModel foundUser = userRepository.findByUsername(username)
+        .orElseThrow(() -> exceptionFactory.userNotFound(username));
+    return convertUserModelToDto(foundUser, userModel);
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(value = "users", allEntries = true),
+  @Caching(evict = {
+      @CacheEvict(cacheNames = {"users", "articles", "viewedArticles", "recommendations",
+          "comments"}, allEntries = true),
       @CacheEvict(value = "userByUsername", key = "{#updateUser.username, #userModel.id}")})
   public GetUser updateUser(UpdateUser updateUser, UserModel userModel,
       BindingResult bindingResult) {
@@ -102,18 +105,10 @@ public class UserService {
         userModel.setUsername(updateUser.getUsername());
       }
     }
-    if (updateUser.getFirstName() != null) {
-      userModel.setFirstName(updateUser.getFirstName());
-    }
-    if (updateUser.getLastName() != null) {
-      userModel.setLastName(updateUser.getLastName());
-    }
-    if (updateUser.getShortInfo() != null) {
-      userModel.setShortInfo(updateUser.getShortInfo());
-    }
-    if (updateUser.getBio() != null) {
-      userModel.setBio(updateUser.getBio());
-    }
+    Optional.ofNullable(updateUser.getFirstName()).ifPresent(userModel::setFirstName);
+    Optional.ofNullable(updateUser.getLastName()).ifPresent(userModel::setLastName);
+    Optional.ofNullable(updateUser.getShortInfo()).ifPresent(userModel::setShortInfo);
+    Optional.ofNullable(updateUser.getBio()).ifPresent(userModel::setBio);
     if (updateUser.getNewEmail() != null && !updateUser.getNewEmail()
         .equals(userModel.getEmail())) {
       boolean isExistsEmail = userRepository.existsByEmail(updateUser.getNewEmail());
@@ -144,7 +139,7 @@ public class UserService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(value = "users", allEntries = true),
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "users"}, allEntries = true),
       @CacheEvict(value = "userByUsername", key = "{#targetUsername, #subscriber.id}")})
   public GetUser subscribe(String targetUsername, UserModel subscriber) {
     if (subscriber.getUsername().equals(targetUsername)) {
@@ -164,7 +159,7 @@ public class UserService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(value = "users", allEntries = true),
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "users"}, allEntries = true),
       @CacheEvict(value = "userByUsername", key = "{#targetUsername, #subscriber.id}")})
   public GetUser unsubscribe(String targetUsername, UserModel subscriber) {
     UserModel targetUser = userRepository.findByUsername(targetUsername)
