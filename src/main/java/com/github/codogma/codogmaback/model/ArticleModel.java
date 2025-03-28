@@ -70,6 +70,8 @@ public class ArticleModel {
   @MultiLanguageField
   @Column(nullable = false)
   private String title;
+  @Column(name = "image_url")
+  private String imageUrl;
   @FullTextField
   @Column(columnDefinition = "TEXT")
   private String previewContent;

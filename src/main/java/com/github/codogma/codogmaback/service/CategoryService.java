@@ -144,7 +144,7 @@ public class CategoryService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(value = "categories", allEntries = true),
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "categories"}, allEntries = true),
       @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
   public GetCategory addToFavorite(Long categoryId, UserModel userModel) {
     CategoryModel category = categoryRepository.findById(categoryId)
@@ -159,7 +159,7 @@ public class CategoryService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(value = "categories", allEntries = true),
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "categories"}, allEntries = true),
       @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
   public GetCategory unfavorite(Long categoryId, UserModel userModel) {
     CategoryModel category = categoryRepository.findById(categoryId)

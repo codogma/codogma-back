@@ -1,6 +1,7 @@
 package com.github.codogma.codogmaback.config;
 
 
+import com.github.codogma.codogmaback.converter.localization.StringToLanguageConverter;
 import com.github.codogma.codogmaback.converter.localization.StringToMapConverter;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationInterceptor;
@@ -31,6 +32,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   private final ExceptionFactory exceptionFactory;
   private final LocalizationInterceptor localizationInterceptor;
   private final StringToMapConverter stringToMapConverter;
+  private final StringToLanguageConverter stringToLanguageConverter;
   private final UserRepository userRepository;
 
   @Value("${user.avatar.upload-dir}")
@@ -63,6 +65,7 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
   @Override
   public void addFormatters(FormatterRegistry registry) {
     registry.addConverter(stringToMapConverter);
+    registry.addConverter(stringToLanguageConverter);
   }
 
   @Bean

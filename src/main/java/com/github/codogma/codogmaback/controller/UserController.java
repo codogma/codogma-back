@@ -77,9 +77,8 @@ public class UserController {
   @Operation(summary = "Get the user by username")
   public ResponseEntity<GetUser> getUserByUsername(@PathVariable String username,
       @AuthenticationPrincipal UserModel userModel) {
-    return userService.getUserByUsername(username, userModel)
-        .map(createGetUser -> new ResponseEntity<>(createGetUser, HttpStatus.OK))
-        .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    GetUser userByUsername = userService.getUserByUsername(username, userModel);
+    return ResponseEntity.ok(userByUsername);
   }
 
   @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

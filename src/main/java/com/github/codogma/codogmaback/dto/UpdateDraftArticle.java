@@ -21,6 +21,8 @@ public class UpdateDraftArticle {
   private Long originalArticleId;
   @Schema(description = "Title of the article", example = "My First Blog Article")
   private String title;
+  @Schema(description = "Preview image of the article")
+  private String imageUrl;
   @Schema(description = "Preview content of the article", example = "This is the preview content of the article")
   private String previewContent;
   @Schema(description = "Content of the article", example = "This is the content of the article")

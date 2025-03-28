@@ -122,7 +122,7 @@ public class ArticleService {
         userModel);
     Page<ArticleView> views = articleViewRepository.findAll(spec, pageable);
     return views.map(view -> convertArticleModelToDTO(view.getArticle(), userModel))
-        .map(this::withoutPreview);
+        .map(this::preparePreview);
   }
 
   private List<Long> getArticleIds(String content) {
@@ -143,12 +143,6 @@ public class ArticleService {
     } else {
       article.setPreviewContent(article.getPreviewContent());
     }
-    article.setContent(null);
-    return article;
-  }
-
-  private GetArticle withoutPreview(GetArticle article) {
-    article.setPreviewContent(null);
     article.setContent(null);
     return article;
   }
@@ -284,7 +278,7 @@ public class ArticleService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel.id}")})
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public GetArticle getDraftedArticleById(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -305,14 +299,14 @@ public class ArticleService {
   public GetArticle createDraftArticle(CreateDraftArticle draftArticle, UserModel userModel) {
     ArticleModel articleModel = ArticleModel.builder().user(userModel)
         .title(draftArticle.getTitle()).content(draftArticle.getContent()).likeCount(0).build();
-    ArticleModel savedArticle = articleRepository.save(articleModel);
-    return convertArticleModelToDTO(savedArticle, userModel);
+    articleModel = articleRepository.save(articleModel);
+    return convertArticleModelToDTO(articleModel, userModel);
   }
 
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel.id}")})
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public void updateDraftArticle(Long articleId, UpdateDraftArticle draftArticle,
       UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
@@ -324,25 +318,17 @@ public class ArticleService {
     if (articleStatus != Status.DRAFT) {
       throw exceptionFactory.editingNotAllowed(articleId);
     }
-    Language language = draftArticle.getLanguage();
-    if (language != null) {
-      articleModel.setLanguage(draftArticle.getLanguage());
-    }
-    Long originalArticleId = draftArticle.getOriginalArticleId();
-    if (originalArticleId != null) {
-      articleRepository.findById(originalArticleId)
-          .orElseThrow(() -> exceptionFactory.originalArticleNotFound(originalArticleId));
-      articleModel.setOriginalArticleId(originalArticleId);
-    }
-    if (draftArticle.getTitle() != null) {
-      articleModel.setTitle(draftArticle.getTitle());
-    }
-    if (draftArticle.getPreviewContent() != null) {
-      articleModel.setPreviewContent(draftArticle.getPreviewContent());
-    }
-    if (draftArticle.getContent() != null) {
-      articleModel.setContent(draftArticle.getContent());
-    }
+    Optional.ofNullable(draftArticle.getLanguage()).ifPresent(articleModel::setLanguage);
+    Optional.ofNullable(draftArticle.getOriginalArticleId()).ifPresent(id -> {
+      articleRepository.findById(id)
+          .orElseThrow(() -> exceptionFactory.originalArticleNotFound(id));
+      articleModel.setOriginalArticleId(id);
+    });
+    Optional.ofNullable(draftArticle.getTitle()).ifPresent(articleModel::setTitle);
+    Optional.ofNullable(draftArticle.getPreviewContent())
+        .ifPresent(articleModel::setPreviewContent);
+    Optional.ofNullable(draftArticle.getContent()).ifPresent(articleModel::setContent);
+    Optional.ofNullable(draftArticle.getImageUrl()).ifPresent(articleModel::setImageUrl);
     List<Long> categoryIds = draftArticle.getCategoryIds();
     if (categoryIds != null && !categoryIds.isEmpty()) {
       List<CategoryModel> categories = new ArrayList<>(categoryRepository.findAllById(categoryIds));
@@ -379,7 +365,73 @@ public class ArticleService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "#articleId")})
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
+  public void updateArticle(Long articleId, UpdateArticle updateArticle, UserModel userModel) {
+    ArticleModel articleModel = articleRepository.findById(articleId)
+        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
+    if (!userModel.getId().equals(articleModel.getUser().getId())) {
+      throw exceptionFactory.notAllowedToEdit(articleId);
+    }
+    Status articleStatus = articleModel.getStatus();
+    if (articleStatus != Status.DRAFT) {
+      throw exceptionFactory.editingNotAllowed(articleId);
+    }
+    List<CategoryModel> categories = new ArrayList<>(
+        categoryRepository.findAllById(updateArticle.getCategoryIds()));
+    List<Long> compilationIds = updateArticle.getCompilationIds();
+    if (compilationIds != null && !compilationIds.isEmpty()) {
+      List<CompilationModel> compilations = new ArrayList<>(
+          compilationRepository.findAllByIdInAndUser(compilationIds, userModel));
+      if (!compilations.isEmpty()) {
+        articleModel.setCompilations(compilations);
+      }
+    }
+    List<String> tags = updateArticle.getTags();
+    List<TagModel> tagModels = new ArrayList<>();
+    if (tags != null && !tags.isEmpty()) {
+      List<TagModel> existingTags = tagRepository.findAllByNameIgnoreCaseIn(tags);
+      Map<String, TagModel> existingTagMap = existingTags.stream()
+          .collect(Collectors.toMap(tag -> tag.getName().toLowerCase().trim(), tag -> tag));
+      tags.forEach(tag -> {
+        TagModel tagModel = existingTagMap.get(tag.toLowerCase());
+        if (tagModel == null) {
+          tagModel = new TagModel();
+          tagModel.setName(tag);
+          tagModel = tagRepository.save(tagModel);
+        }
+        tagModels.add(tagModel);
+      });
+    }
+    Optional.ofNullable(updateArticle.getOriginalArticleId()).ifPresent(id -> {
+      articleRepository.findById(id)
+          .orElseThrow(() -> exceptionFactory.originalArticleNotFound(id));
+      articleModel.setOriginalArticleId(id);
+    });
+    articleModel.setLanguage(updateArticle.getLanguage());
+    articleModel.setStatus(Status.MODERATION);
+    articleModel.setTitle(updateArticle.getTitle());
+    articleModel.setPreviewContent(updateArticle.getPreviewContent());
+    articleModel.setContent(updateArticle.getContent());
+    articleModel.setCategories(categories);
+    articleModel.setTags(tagModels);
+    articleModel.setUser(userModel);
+    articleModel.setImageUrl(updateArticle.getImageUrl());
+    articleRepository.save(articleModel);
+    List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
+    moderators.forEach(moderator -> {
+      NotificationModel notification = NotificationModel.builder()
+          .recipient(moderator.getUsername()).articleId(articleId)
+          .title(localizationUtil.getLocalizedField("notification.article.moderation.title"))
+          .message(localizationUtil.getLocalizedField("notification.article.moderation.message"))
+          .type(NotificationType.ARTICLE_MODERATION).isRead(false).build();
+      notificationService.saveAndSendToPrivate(moderator.getUsername(), notification);
+    });
+  }
+
+  @Transactional
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
+      "recommendations"}, allEntries = true),
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public void publishArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -401,8 +453,9 @@ public class ArticleService {
   }
 
   @Transactional
-  @CacheEvict(cacheNames = {"articles", "articleById", "viewedArticles",
-      "recommendations"}, allEntries = true)
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
+      "recommendations"}, allEntries = true),
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public void hideArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -450,73 +503,7 @@ public class ArticleService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel.id}")})
-  public void updateArticle(Long articleId, UpdateArticle updateArticle, UserModel userModel) {
-    ArticleModel articleModel = articleRepository.findById(articleId)
-        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    if (!userModel.getId().equals(articleModel.getUser().getId())) {
-      throw exceptionFactory.notAllowedToEdit(articleId);
-    }
-    Status articleStatus = articleModel.getStatus();
-    if (articleStatus != Status.DRAFT) {
-      throw exceptionFactory.editingNotAllowed(articleId);
-    }
-    List<CategoryModel> categories = new ArrayList<>(
-        categoryRepository.findAllById(updateArticle.getCategoryIds()));
-    List<Long> compilationIds = updateArticle.getCompilationIds();
-    if (compilationIds != null && !compilationIds.isEmpty()) {
-      List<CompilationModel> compilations = new ArrayList<>(
-          compilationRepository.findAllByIdInAndUser(compilationIds, userModel));
-      if (!compilations.isEmpty()) {
-        articleModel.setCompilations(compilations);
-      }
-    }
-    List<String> tags = updateArticle.getTags();
-    List<TagModel> tagModels = new ArrayList<>();
-    if (tags != null && !tags.isEmpty()) {
-      List<TagModel> existingTags = tagRepository.findAllByNameIgnoreCaseIn(tags);
-      Map<String, TagModel> existingTagMap = existingTags.stream()
-          .collect(Collectors.toMap(tag -> tag.getName().toLowerCase().trim(), tag -> tag));
-      tags.forEach(tag -> {
-        TagModel tagModel = existingTagMap.get(tag.toLowerCase());
-        if (tagModel == null) {
-          tagModel = new TagModel();
-          tagModel.setName(tag);
-          tagModel = tagRepository.save(tagModel);
-        }
-        tagModels.add(tagModel);
-      });
-    }
-    Long originalArticleId = updateArticle.getOriginalArticleId();
-    if (originalArticleId != null) {
-      articleRepository.findById(originalArticleId)
-          .orElseThrow(() -> exceptionFactory.originalArticleNotFound(originalArticleId));
-      articleModel.setOriginalArticleId(originalArticleId);
-    }
-    articleModel.setLanguage(updateArticle.getLanguage());
-    articleModel.setStatus(Status.MODERATION);
-    articleModel.setTitle(updateArticle.getTitle());
-    articleModel.setPreviewContent(updateArticle.getPreviewContent());
-    articleModel.setContent(updateArticle.getContent());
-    articleModel.setCategories(categories);
-    articleModel.setTags(tagModels);
-    articleModel.setUser(userModel);
-    articleRepository.save(articleModel);
-    List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
-    moderators.forEach(moderator -> {
-      NotificationModel notification = NotificationModel.builder()
-          .recipient(moderator.getUsername()).articleId(articleId)
-          .title(localizationUtil.getLocalizedField("notification.article.moderation.title"))
-          .message(localizationUtil.getLocalizedField("notification.article.moderation.message"))
-          .type(NotificationType.ARTICLE_MODERATION).isRead(false).build();
-      notificationService.saveAndSendToPrivate(moderator.getUsername(), notification);
-    });
-  }
-
-  @Transactional
-  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
-      "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel.id}")})
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public void deleteArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -530,7 +517,7 @@ public class ArticleService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel.id}")})
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
     List<Long> compilationIdsToAddOrRemove = compilations.getCompilationIds();
     List<CompilationModel> compilationModelList = compilationRepository.findAllByIdInAndUser(
@@ -570,8 +557,8 @@ public class ArticleService {
         .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
         .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
             .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
-        .previewContent(articleModel.getPreviewContent()).content(articleModel.getContent())
-        .username(articleModel.getUser().getUsername())
+        .imageUrl(articleModel.getImageUrl()).previewContent(articleModel.getPreviewContent())
+        .content(articleModel.getContent()).username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())
         .categories(articleModel.getCategories().stream().map(category -> {
           String localizedCategoryName = category.getName()
