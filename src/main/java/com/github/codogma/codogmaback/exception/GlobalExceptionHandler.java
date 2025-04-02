@@ -1,13 +1,16 @@
 package com.github.codogma.codogmaback.exception;
 
 import com.github.codogma.codogmaback.dto.ErrorResponse;
+import com.github.codogma.codogmaback.util.LocalizationUtil;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,7 +23,10 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+  private final LocalizationUtil localizationUtil;
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Map<String, String>> handleValidationExceptions(
@@ -105,6 +111,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(IncorrectPasswordException.class)
   public ResponseEntity<String> handleIncorrectPasswordException(IncorrectPasswordException ex) {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+  }
+
+  @ExceptionHandler(BadCredentialsException.class)
+  public ResponseEntity<String> handleBadCredentialsException(BadCredentialsException ex) {
+    return new ResponseEntity<>(localizationUtil.getMessage("auth.bad.credentials"),
+        HttpStatus.UNAUTHORIZED);
   }
 
   @ExceptionHandler(NoResourceFoundException.class)
