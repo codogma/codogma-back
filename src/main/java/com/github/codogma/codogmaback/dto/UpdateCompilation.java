@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -24,7 +25,7 @@ public class UpdateCompilation {
   @Schema(description = "Description of the compilation", example = "About the basics of java programming")
   private String description;
   @Schema(description = "Ordered list of article IDs (duplicates will be rejected)")
-  private List<Long> articleIds;
+  private List<Long> articleIds = new ArrayList<>();
 
   @AssertTrue(message = "Article IDs must be unique")
   private boolean isArticleIdsUnique() {
