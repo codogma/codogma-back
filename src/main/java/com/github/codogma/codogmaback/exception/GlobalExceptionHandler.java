@@ -1,13 +1,17 @@
 package com.github.codogma.codogmaback.exception;
 
 import com.github.codogma.codogmaback.dto.ErrorResponse;
+import com.github.codogma.codogmaback.util.LocalizationUtil;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,7 +24,10 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+  private final LocalizationUtil localizationUtil;
 
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<Map<String, String>> handleValidationExceptions(
@@ -107,6 +114,12 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
   }
 
+  @ExceptionHandler(BadCredentialsException.class)
+  public ResponseEntity<String> handleBadCredentialsException(BadCredentialsException ex) {
+    return new ResponseEntity<>(localizationUtil.getMessage("auth.bad.credentials"),
+        HttpStatus.UNAUTHORIZED);
+  }
+
   @ExceptionHandler(NoResourceFoundException.class)
   public ResponseEntity<String> handleNoResourceFoundException(NoResourceFoundException ex) {
     log.error("NoResourceFoundException caught", ex);
@@ -143,6 +156,15 @@ public class GlobalExceptionHandler {
     ErrorResponse errorResponse = ErrorResponse.builder().error("Forbidden")
         .message("You do not have permission to access this resource.").build();
     return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+  }
+
+  @ExceptionHandler(InsufficientAuthenticationException.class)
+  public ResponseEntity<ErrorResponse> handleInsufficientAuthenticationException(
+      InsufficientAuthenticationException ex) {
+    log.error("Insufficient authentication exception caught", ex);
+    ErrorResponse errorResponse = ErrorResponse.builder().error("Unauthorized")
+        .message(localizationUtil.getMessage("auth.insufficient")).build();
+    return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
   }
 
   @ExceptionHandler(TokenExpiredException.class)

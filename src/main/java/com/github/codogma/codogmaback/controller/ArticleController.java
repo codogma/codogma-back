@@ -65,6 +65,10 @@ public class ArticleController {
       @RequestParam(defaultValue = "updatedAt") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
+    if (compilationId != null) {
+      sort = "compilationArticles.position";
+      order = "asc";
+    }
     Page<GetArticle> articles = articleService.getArticles(order, sort, page, size, categoryId,
         compilationId, tag, username, isFeed, userModel, content);
     return ResponseEntity.ok(articles);

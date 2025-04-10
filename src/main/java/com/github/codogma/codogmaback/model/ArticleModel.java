@@ -16,7 +16,6 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -92,11 +91,9 @@ public class ArticleModel {
   private List<CategoryModel> categories = new ArrayList<>();
   @Builder.Default
   @IndexedEmbedded
+  @OneToMany(mappedBy = "article")
   @Exclude
-  @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-  @JoinTable(name = "article_compilations", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "compilation_id"), uniqueConstraints = {
-      @UniqueConstraint(columnNames = {"article_id", "compilation_id"})})
-  private List<CompilationModel> compilations = new ArrayList<>();
+  private List<CompilationArticle> compilationArticles = new ArrayList<>();
   @Default
   @IndexedEmbedded(includePaths = {"id", "name"})
   @ManyToMany(fetch = FetchType.LAZY)
@@ -107,6 +104,9 @@ public class ArticleModel {
   @OrderBy("createdAt ASC")
   @Exclude
   private List<CommentModel> comments = new ArrayList<>();
+  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Exclude
+  private List<ArticleView> views = new ArrayList<>();
   @GenericField(sortable = Sortable.YES)
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")

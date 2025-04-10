@@ -1,23 +1,33 @@
 package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.dto.CreateCompilation;
+import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.GetCompilation;
 import com.github.codogma.codogmaback.dto.UpdateCompilation;
 import com.github.codogma.codogmaback.exception.BookmarkAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.CompilationNotFoundException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
+import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.BookmarkModel;
+import com.github.codogma.codogmaback.model.CompilationArticle;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.UserModel;
+import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.BookmarkRepository;
+import com.github.codogma.codogmaback.repository.CompilationArticleRepository;
 import com.github.codogma.codogmaback.repository.CompilationRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.CompilationSpecifications;
 import com.github.codogma.codogmaback.util.FileUploadUtil;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.search.mapper.orm.Search;
@@ -38,12 +48,14 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CompilationService {
 
+  private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final ExceptionFactory exceptionFactory;
   private final EntityManager entityManager;
   private final CompilationRepository compilationRepository;
   private final BookmarkRepository bookmarkRepository;
   private final FileUploadUtil fileUploadUtil;
+  private final CompilationArticleRepository compilationArticleRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -94,8 +106,8 @@ public class CompilationService {
   }
 
   @Transactional
-  @Caching(evict = {
-      @CacheEvict(cacheNames = {"compilations", "compilationsByTitle"}, allEntries = true),
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "compilations",
+      "compilationsByTitle"}, allEntries = true),
       @CacheEvict(value = "compilationById", key = "{#compilationId, #userModel.id}")})
   public void updateCompilation(Long compilationId, UpdateCompilation updateCompilation,
       UserModel userModel) {
@@ -103,6 +115,41 @@ public class CompilationService {
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
     if (!userModel.getId().equals(compilation.getUser().getId())) {
       throw exceptionFactory.notAllowedToEdit(compilation.getId());
+    }
+    List<Long> articleIds = updateCompilation.getArticleIds();
+    if (articleIds != null) {
+      // Создаем мапу существующих связей для быстрого доступа по articleId
+      Map<Long, CompilationArticle> existingLinks = compilation.getCompilationArticles().stream()
+          .collect(Collectors.toMap(compilationArticle -> compilationArticle.getArticle().getId(),
+              compilationArticle -> compilationArticle));
+
+      List<CompilationArticle> updatedLinks = new ArrayList<>();
+      Set<Long> processedArticleIds = new HashSet<>();
+
+      // Обрабатываем список articleIds, обновляем позиции или создаем новые связи
+      for (int position = 0; position < articleIds.size(); position++) {
+        Long articleId = articleIds.get(position);
+        CompilationArticle link = existingLinks.get(articleId);
+        if (link == null) {
+          ArticleModel article = articleRepository.findById(articleId)
+              .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
+          link = CompilationArticle.builder().compilation(compilation).article(article)
+              .position(position).build();
+        } else {
+          link.setPosition(position);
+        }
+        updatedLinks.add(link);
+        processedArticleIds.add(articleId);
+      }
+
+      // Удаляем orphan-связи из коллекции
+      compilation.getCompilationArticles().removeIf(
+          compilationArticle -> !processedArticleIds.contains(
+              compilationArticle.getArticle().getId()));
+
+      // Обновляем коллекцию сущности: чистим и добавляем актуальные связи
+      compilation.getCompilationArticles().clear();
+      compilation.getCompilationArticles().addAll(updatedLinks);
     }
     Optional.ofNullable(updateCompilation.getTitle()).filter(title -> !title.isEmpty())
         .ifPresent(compilation::setTitle);
@@ -120,7 +167,6 @@ public class CompilationService {
     if (!userModel.getId().equals(compilation.getUser().getId())) {
       throw exceptionFactory.notAllowedToEdit(compilation.getId());
     }
-    compilation.getArticles().forEach(article -> article.getCompilations().remove(compilation));
     compilationRepository.delete(compilation);
   }
 
@@ -157,11 +203,16 @@ public class CompilationService {
         compilation.getUser().getFirstName() != null || compilation.getUser().getLastName() != null
             ? compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
             : compilation.getUser().getUsername();
+    List<GetArticle> articles = compilation.getCompilationArticles().stream().map(
+        compilationArticle -> GetArticle.builder().id(compilationArticle.getArticle().getId())
+            .title(compilationArticle.getArticle().getTitle())
+            .imageUrl(compilationArticle.getArticle().getImageUrl()).build()).toList();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())
         .description(compilation.getDescription()).ownerName(compilation.getUser().getUsername())
         .ownerFullName(userFullName.trim()).ownerAvatarUrl(compilation.getUser().getAvatarUrl())
-        .imageUrl(compilation.getImageUrl()).build();
+        .imageUrl(compilation.getImageUrl()).articles(articles)
+        .createdAt(compilation.getCreatedAt()).updatedAt(compilation.getUpdatedAt()).build();
   }
 
   private GetCompilation convertCompilationToDTO(CompilationModel compilation) {

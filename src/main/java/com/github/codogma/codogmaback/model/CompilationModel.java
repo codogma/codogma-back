@@ -8,9 +8,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -49,9 +49,10 @@ public class CompilationModel {
   private String description;
   @Column(name = "image_url")
   private String imageUrl;
+  @OneToMany(mappedBy = "compilation", cascade = CascadeType.ALL, orphanRemoval = true)
+  @OrderBy("position ASC")
   @Exclude
-  @ManyToMany(fetch = FetchType.LAZY, mappedBy = "compilations")
-  private List<ArticleModel> articles = new ArrayList<>();
+  private List<CompilationArticle> compilationArticles = new ArrayList<>();
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   @Exclude

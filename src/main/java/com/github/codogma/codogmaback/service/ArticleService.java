@@ -16,6 +16,7 @@ import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.ArticleScoreProjection;
 import com.github.codogma.codogmaback.model.ArticleView;
 import com.github.codogma.codogmaback.model.CategoryModel;
+import com.github.codogma.codogmaback.model.CompilationArticle;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.LikeModel;
@@ -28,6 +29,7 @@ import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.ArticleViewRepository;
 import com.github.codogma.codogmaback.repository.CategoryRepository;
+import com.github.codogma.codogmaback.repository.CompilationArticleRepository;
 import com.github.codogma.codogmaback.repository.CompilationRepository;
 import com.github.codogma.codogmaback.repository.LikeRepository;
 import com.github.codogma.codogmaback.repository.TagRepository;
@@ -87,6 +89,7 @@ public class ArticleService {
   private final TagRepository tagRepository;
   private final UserRepository userRepository;
   private final ContentBasedRecommender contentBasedRecommender;
+  private final CompilationArticleRepository compilationArticleRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -334,14 +337,60 @@ public class ArticleService {
       List<CategoryModel> categories = new ArrayList<>(categoryRepository.findAllById(categoryIds));
       articleModel.setCategories(categories);
     }
+
+    // Обновление подборок с учетом порядка
     List<Long> compilationIds = draftArticle.getCompilationIds();
-    if (compilationIds != null && !compilationIds.isEmpty()) {
-      List<CompilationModel> compilations = new ArrayList<>(
-          compilationRepository.findAllByIdInAndUser(compilationIds, userModel));
-      if (!compilations.isEmpty()) {
-        articleModel.setCompilations(compilations);
+    if (compilationIds != null) {
+      // Получаем существующие связи
+      List<CompilationArticle> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
+          articleModel, userModel);
+      // Создаем мапу для быстрого поиска существующих связей
+      Map<Long, CompilationArticle> existingLinksMap = existingLinks.stream().collect(
+          Collectors.toMap(compilationArticle -> compilationArticle.getCompilation().getId(),
+              compilationArticle -> compilationArticle));
+      // Удаляем связи, которые отсутствуют в новом списке
+      List<CompilationArticle> linksToRemove = existingLinks.stream().filter(
+          compilationArticle -> !compilationIds.contains(
+              compilationArticle.getCompilation().getId())).toList();
+
+      for (CompilationArticle removedLink : linksToRemove) {
+        CompilationModel compilation = removedLink.getCompilation();
+        compilation.getCompilationArticles().remove(removedLink);
+        compilationArticleRepository.delete(removedLink);
+        List<CompilationArticle> links = compilationArticleRepository.findByCompilationOrderByPosition(
+            compilation);
+        for (int i = 0; i < links.size(); i++) {
+          CompilationArticle link = links.get(i);
+          link.setPosition(i);
+        }
+        compilationArticleRepository.saveAll(links);
       }
+
+      // Создаем или обновляем связи
+      List<CompilationArticle> linksToSave = new ArrayList<>();
+
+      // Для каждой переданной подборки
+      for (Long compilationId : compilationIds) {
+        CompilationArticle link = existingLinksMap.get(compilationId);
+        // Получаем актуальную подборку (возможно, её коллекция compilationArticles не загружена)
+        CompilationModel compilation = compilationRepository.findById(compilationId)
+            .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
+
+        if (link == null) {
+          // Новая связь: вычисляем максимальную позицию в подборке и добавляем статью в конец
+          int maxPosition = compilation.getCompilationArticles().stream()
+              .map(CompilationArticle::getPosition).max(Integer::compareTo).orElse(-1);
+          link = CompilationArticle.builder().article(articleModel).compilation(compilation)
+              .position(maxPosition + 1).build();
+          // Добавляем связь в коллекцию подборки, чтобы orphanRemoval работал корректно
+          compilation.getCompilationArticles().add(link);
+        }
+        // Если связь уже существует, оставляем её позицию без изменений (или можно обновить, если требуется другая логика)
+        linksToSave.add(link);
+      }
+      compilationArticleRepository.saveAll(linksToSave);
     }
+
     List<String> tags = draftArticle.getTags();
     if (tags != null && !tags.isEmpty()) {
       List<TagModel> tagModels = new ArrayList<>();
@@ -378,13 +427,58 @@ public class ArticleService {
     }
     List<CategoryModel> categories = new ArrayList<>(
         categoryRepository.findAllById(updateArticle.getCategoryIds()));
+
+    // Обновление подборок с учетом порядка
     List<Long> compilationIds = updateArticle.getCompilationIds();
-    if (compilationIds != null && !compilationIds.isEmpty()) {
-      List<CompilationModel> compilations = new ArrayList<>(
-          compilationRepository.findAllByIdInAndUser(compilationIds, userModel));
-      if (!compilations.isEmpty()) {
-        articleModel.setCompilations(compilations);
+    if (compilationIds != null) {
+      // Получаем существующие связи
+      List<CompilationArticle> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
+          articleModel, userModel);
+      // Создаем мапу для быстрого поиска существующих связей
+      Map<Long, CompilationArticle> existingLinksMap = existingLinks.stream().collect(
+          Collectors.toMap(compilationArticle -> compilationArticle.getCompilation().getId(),
+              compilationArticle -> compilationArticle));
+      // Удаляем связи, которые отсутствуют в новом списке
+      List<CompilationArticle> linksToRemove = existingLinks.stream().filter(
+          compilationArticle -> !compilationIds.contains(
+              compilationArticle.getCompilation().getId())).toList();
+
+      for (CompilationArticle removedLink : linksToRemove) {
+        CompilationModel compilation = removedLink.getCompilation();
+        compilation.getCompilationArticles().remove(removedLink);
+        compilationArticleRepository.delete(removedLink);
+        List<CompilationArticle> links = compilationArticleRepository.findByCompilationOrderByPosition(
+            compilation);
+        for (int i = 0; i < links.size(); i++) {
+          CompilationArticle link = links.get(i);
+          link.setPosition(i);
+        }
+        compilationArticleRepository.saveAll(links);
       }
+
+      // Создаем или обновляем связи
+      List<CompilationArticle> linksToSave = new ArrayList<>();
+
+      // Для каждой переданной подборки
+      for (Long compilationId : compilationIds) {
+        CompilationArticle link = existingLinksMap.get(compilationId);
+        // Получаем актуальную подборку (возможно, её коллекция compilationArticles не загружена)
+        CompilationModel compilation = compilationRepository.findById(compilationId)
+            .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
+
+        if (link == null) {
+          // Новая связь: вычисляем максимальную позицию в подборке и добавляем статью в конец
+          int maxPosition = compilation.getCompilationArticles().stream()
+              .map(CompilationArticle::getPosition).max(Integer::compareTo).orElse(-1);
+          link = CompilationArticle.builder().article(articleModel).compilation(compilation)
+              .position(maxPosition + 1).build();
+          // Добавляем связь в коллекцию подборки, чтобы orphanRemoval работал корректно
+          compilation.getCompilationArticles().add(link);
+        }
+        // Если связь уже существует, оставляем её позицию без изменений (или можно обновить, если требуется другая логика)
+        linksToSave.add(link);
+      }
+      compilationArticleRepository.saveAll(linksToSave);
     }
     List<String> tags = updateArticle.getTags();
     List<TagModel> tagModels = new ArrayList<>();
@@ -515,42 +609,77 @@ public class ArticleService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
+  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "compilations", "viewedArticles",
       "recommendations"}, allEntries = true),
       @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
   public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
-    List<Long> compilationIdsToAddOrRemove = compilations.getCompilationIds();
+    ArticleModel articleModel = articleRepository.findById(articleId)
+        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
+    List<Long> compilationIds = compilations.getCompilationIds();
     List<CompilationModel> compilationModelList = compilationRepository.findAllByIdInAndUser(
-        compilationIdsToAddOrRemove, userModel);
-    if (compilationModelList.size() != compilationIdsToAddOrRemove.size()) {
+        compilationIds, userModel);
+    if (compilationModelList.size() != compilationIds.size()) {
       throw new IllegalArgumentException("Some compilation IDs are invalid");
     }
-    ArticleModel article = articleRepository.findById(articleId)
-        .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    List<CompilationModel> userCompilations = compilationRepository.findAllByUser(userModel);
-    List<CompilationModel> articleCompilations = article.getCompilations();
-    Set<Long> compilationIdsSet = new HashSet<>(compilationIdsToAddOrRemove);
-    articleCompilations.removeIf(
-        compilation -> userCompilations.contains(compilation) && !compilationIdsSet.contains(
-            compilation.getId()));
-    Set<CompilationModel> currentCompilationsSet = new HashSet<>(articleCompilations);
-    for (CompilationModel compilation : compilationModelList) {
-      if (!currentCompilationsSet.contains(compilation)) {
-        articleCompilations.add(compilation);
+    // Получаем существующие связи
+    List<CompilationArticle> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
+        articleModel, userModel);
+    // Создаем мапу для быстрого поиска существующих связей
+    Map<Long, CompilationArticle> existingLinksMap = existingLinks.stream().collect(
+        Collectors.toMap(compilationArticle -> compilationArticle.getCompilation().getId(),
+            compilationArticle -> compilationArticle));
+    // Удаляем связи, которые отсутствуют в новом списке
+    List<CompilationArticle> linksToRemove = existingLinks.stream().filter(
+            compilationArticle -> !compilationIds.contains(compilationArticle.getCompilation().getId()))
+        .toList();
+
+    for (CompilationArticle removedLink : linksToRemove) {
+      CompilationModel compilation = removedLink.getCompilation();
+      compilation.getCompilationArticles().remove(removedLink);
+      compilationArticleRepository.delete(removedLink);
+      List<CompilationArticle> links = compilationArticleRepository.findByCompilationOrderByPosition(
+          compilation);
+      for (int i = 0; i < links.size(); i++) {
+        CompilationArticle link = links.get(i);
+        link.setPosition(i);
       }
+      compilationArticleRepository.saveAll(links);
     }
-    article.setCompilations(articleCompilations);
-    return convertArticleModelToDTO(article, userModel);
+
+    // Создаем или обновляем связи
+    List<CompilationArticle> linksToSave = new ArrayList<>();
+
+    // Для каждой переданной подборки
+    for (Long compilationId : compilationIds) {
+      CompilationArticle link = existingLinksMap.get(compilationId);
+      // Получаем актуальную подборку (возможно, её коллекция compilationArticles не загружена)
+      CompilationModel compilation = compilationRepository.findById(compilationId)
+          .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
+
+      if (link == null) {
+        // Новая связь: вычисляем максимальную позицию в подборке и добавляем статью в конец
+        int maxPosition = compilation.getCompilationArticles().stream()
+            .map(CompilationArticle::getPosition).max(Integer::compareTo).orElse(-1);
+        link = CompilationArticle.builder().article(articleModel).compilation(compilation)
+            .position(maxPosition + 1).build();
+        // Добавляем связь в коллекцию подборки, чтобы orphanRemoval работал корректно
+        compilation.getCompilationArticles().add(link);
+      }
+      // Если связь уже существует, оставляем её позицию без изменений (или можно обновить, если требуется другая логика)
+      linksToSave.add(link);
+    }
+    compilationArticleRepository.saveAll(linksToSave);
+    return convertArticleModelToDTO(articleModel, userModel);
   }
 
   private GetArticle convertArticleModelToDTO(ArticleModel articleModel, UserModel userModel) {
     ArticleModel originalArticle =
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
-    List<GetCompilation> compilations = new ArrayList<>(compilationRepository.findAllByIdInAndUser(
-        articleModel.getCompilations().stream().map(CompilationModel::getId).toList(),
-        userModel)).stream().map(compilation -> GetCompilation.builder().id(compilation.getId())
-        .title(compilation.getTitle()).build()).toList();
+    List<GetCompilation> compilations = compilationArticleRepository.findAllByArticleAndCompilationUser(
+        articleModel, userModel).stream().map(compilationArticle -> GetCompilation.builder()
+        .id(compilationArticle.getCompilation().getId())
+        .title(compilationArticle.getCompilation().getTitle()).build()).toList();
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
@@ -566,7 +695,7 @@ public class ArticleService {
           return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
         }).toList()).compilations(compilations).tags(articleModel.getTags().stream()
             .map(tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
-            .toList()).compilationsCount(articleModel.getCompilations().size())
+            .toList()).compilationsCount(articleModel.getCompilationArticles().size())
         .commentsCount(commentsCount).createdAt(articleModel.getCreatedAt())
         .updatedAt(articleModel.getUpdatedAt()).build();
   }
