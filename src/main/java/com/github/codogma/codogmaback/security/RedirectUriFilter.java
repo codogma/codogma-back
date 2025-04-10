@@ -29,6 +29,7 @@ public class RedirectUriFilter extends GenericFilterBean {
         log.info("No redirect_success_uri parameter found");
       }
     }
+    //TODO обработать исключения InsufficientAuthenticationException (обработчик был добавлен в GlobalExceptionHandler, но не работает)
     chain.doFilter(request, response);
   }
 }

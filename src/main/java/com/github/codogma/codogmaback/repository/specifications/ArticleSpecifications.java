@@ -52,7 +52,7 @@ public class ArticleSpecifications {
 
   public static Specification<ArticleModel> hasCompilationId(Long compilationId) {
     return (root, query, builder) -> compilationId != null ? builder.equal(
-        root.join("compilations").get("id"), compilationId) : null;
+        root.join("compilationArticles").join("compilation").get("id"), compilationId) : null;
   }
 
   public static Specification<ArticleModel> hasContentMatch(List<Long> articleIds) {
