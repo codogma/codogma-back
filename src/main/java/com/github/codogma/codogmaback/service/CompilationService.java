@@ -11,6 +11,7 @@ import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.BookmarkModel;
 import com.github.codogma.codogmaback.model.CompilationArticle;
 import com.github.codogma.codogmaback.model.CompilationModel;
+import com.github.codogma.codogmaback.model.Status;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.BookmarkRepository;
@@ -48,6 +49,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class CompilationService {
 
+  public static final long MAX_COMPILATION_ARTICLE_SIZE = 5L;
   private final ArticleRepository articleRepository;
   private final UserRepository userRepository;
   private final ExceptionFactory exceptionFactory;
@@ -203,10 +205,16 @@ public class CompilationService {
         compilation.getUser().getFirstName() != null || compilation.getUser().getLastName() != null
             ? compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
             : compilation.getUser().getUsername();
-    List<GetArticle> articles = compilation.getCompilationArticles().stream().map(
-        compilationArticle -> GetArticle.builder().id(compilationArticle.getArticle().getId())
-            .title(compilationArticle.getArticle().getTitle())
-            .imageUrl(compilationArticle.getArticle().getImageUrl()).build()).toList();
+    List<GetArticle> articles = compilation.getCompilationArticles().stream()
+        .filter(compilationArticle -> {
+          ArticleModel article = compilationArticle.getArticle();
+          return userModel != null ? article.getUser().getId().equals(userModel.getId())
+              || article.getStatus().equals(Status.PUBLISHED)
+              : article.getStatus().equals(Status.PUBLISHED);
+        }).limit(MAX_COMPILATION_ARTICLE_SIZE).map(
+            compilationArticle -> GetArticle.builder().id(compilationArticle.getArticle().getId())
+                .title(compilationArticle.getArticle().getTitle())
+                .imageUrl(compilationArticle.getArticle().getImageUrl()).build()).toList();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())
         .description(compilation.getDescription()).ownerName(compilation.getUser().getUsername())
