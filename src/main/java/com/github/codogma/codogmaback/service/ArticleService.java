@@ -157,7 +157,7 @@ public class ArticleService {
   }
 
   @Transactional
-  @Cacheable(value = "articleById", key = "{#articleId, #userModel?.id}")
+  @Cacheable(value = "articleById", key = "{#articleId, #userModel?.id, @localizationContext.language.code}")
   public GetArticle getArticleById(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -204,7 +204,7 @@ public class ArticleService {
 
   @Transactional
   @CacheEvict(value = "viewedArticles", allEntries = true)
-  public GetArticle recordView(Long articleId, UserModel userModel) {
+  public void recordView(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     if (userModel != null) {
@@ -213,7 +213,6 @@ public class ArticleService {
       existingView.setUpdatedAt(LocalDateTime.now());
       articleViewRepository.save(existingView);
     }
-    return convertArticleModelToDTO(articleModel, userModel);
   }
 
   @Transactional
@@ -612,7 +611,7 @@ public class ArticleService {
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "compilations", "viewedArticles",
       "recommendations"}, allEntries = true),
       @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
-  public GetArticle compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
+  public void compilate(Long articleId, CompilationsDTO compilations, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     List<Long> compilationIds = compilations.getCompilationIds();
@@ -669,7 +668,6 @@ public class ArticleService {
       linksToSave.add(link);
     }
     compilationArticleRepository.saveAll(linksToSave);
-    return convertArticleModelToDTO(articleModel, userModel);
   }
 
   private GetArticle convertArticleModelToDTO(ArticleModel articleModel, UserModel userModel) {

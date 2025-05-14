@@ -119,10 +119,10 @@ public class ArticleController {
 
   @PostMapping("/{id:\\d+}/record-view")
   @Operation(summary = "Record article view")
-  public ResponseEntity<GetArticle> recordView(@PathVariable Long id,
+  public ResponseEntity<?> recordView(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetArticle article = articleService.recordView(id, userModel);
-    return ResponseEntity.ok(article);
+    articleService.recordView(id, userModel);
+    return ResponseEntity.ok("Article view recorded successfully");
   }
 
   @GetMapping("/recommendations")
@@ -244,10 +244,10 @@ public class ArticleController {
   @Operation(summary = "Add the article to the compilations")
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<GetArticle> compilate(@PathVariable Long id,
+  public ResponseEntity<?> compilate(@PathVariable Long id,
       @Valid @RequestBody CompilationsDTO compilations,
       @AuthenticationPrincipal UserModel userModel) {
-    GetArticle article = articleService.compilate(id, compilations, userModel);
-    return ResponseEntity.ok(article);
+    articleService.compilate(id, compilations, userModel);
+    return ResponseEntity.ok("Article compilated successfully");
   }
 }

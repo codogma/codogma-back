@@ -53,7 +53,7 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
   @Transactional
   public GetUser signUp(SignUpRequest signUpRequest, MultipartFile avatar, String origin) {
     userRepository.findByUsernameOrEmail(signUpRequest.getUsername(), signUpRequest.getEmail())
-        .ifPresent((user) -> {
+        .ifPresent(user -> {
           throw exceptionFactory.userAlreadyExists();
         });
     UserModel user = UserModel.builder().username(signUpRequest.getUsername())
@@ -66,7 +66,7 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
     ConfirmationToken confirmationToken = ConfirmationToken.builder().token(token).user(user)
         .createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusHours(24)).build();
     tokenService.saveConfirmationToken(confirmationToken);
-//    emailService.sendEmailVerification(user.getEmail(), token, origin);
+    emailService.sendEmailVerification(user.getEmail(), token, origin);
     return convertUserModelToDto(user);
   }
 
