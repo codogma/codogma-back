@@ -33,6 +33,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -85,7 +86,7 @@ public class UserController {
   @Operation(summary = "Update the user by username")
   @SecurityRequirement(name = "bearerAuth")
   public ResponseEntity<Object> updateUser(@Valid @ModelAttribute UpdateUser updateUser,
-      @RequestParam(value = "avatar", required = false) MultipartFile avatar,
+      @RequestPart(value = "avatar", required = false) MultipartFile avatar,
       @AuthenticationPrincipal UserModel userModel, BindingResult bindingResult) {
     updateUser.setAvatar(avatar);
     GetUser updatedUser = userService.updateUser(updateUser, userModel, bindingResult);

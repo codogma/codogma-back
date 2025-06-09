@@ -1,17 +1,23 @@
 package com.github.codogma.codogmaback.service;
 
+import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
+
 import com.github.codogma.codogmaback.dto.CompilationsDTO;
 import com.github.codogma.codogmaback.dto.CreateDraftArticle;
 import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.GetCategory;
 import com.github.codogma.codogmaback.dto.GetCompilation;
+import com.github.codogma.codogmaback.dto.GetImageWithPalette;
 import com.github.codogma.codogmaback.dto.GetTag;
+import com.github.codogma.codogmaback.dto.PaletteDTO;
+import com.github.codogma.codogmaback.dto.SwatchDTO;
 import com.github.codogma.codogmaback.dto.UpdateArticle;
 import com.github.codogma.codogmaback.dto.UpdateDraftArticle;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.exception.LikeAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.LikeNotFoundException;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
+import com.github.codogma.codogmaback.model.ArticleImageModel;
 import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.ArticleScoreProjection;
 import com.github.codogma.codogmaback.model.ArticleView;
@@ -22,10 +28,13 @@ import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.LikeModel;
 import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
+import com.github.codogma.codogmaback.model.Palette;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.Status;
+import com.github.codogma.codogmaback.model.Swatch;
 import com.github.codogma.codogmaback.model.TagModel;
 import com.github.codogma.codogmaback.model.UserModel;
+import com.github.codogma.codogmaback.repository.ArticleImageRepository;
 import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.ArticleViewRepository;
 import com.github.codogma.codogmaback.repository.CategoryRepository;
@@ -36,7 +45,6 @@ import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
 import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpecifications;
-import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
 import com.github.codogma.codogmaback.util.KeywordExtractor;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
@@ -77,6 +85,7 @@ public class ArticleService {
 
   private final ArticleRepository articleRepository;
   private final ArticleViewRepository articleViewRepository;
+  private final ArticleImageRepository articleImageRepository;
   private final EntityManager entityManager;
   private final ExceptionFactory exceptionFactory;
   private final CategoryRepository categoryRepository;
@@ -300,7 +309,7 @@ public class ArticleService {
   @CacheEvict(cacheNames = {"articles", "recommendations"}, allEntries = true)
   public GetArticle createDraftArticle(CreateDraftArticle draftArticle, UserModel userModel) {
     ArticleModel articleModel = ArticleModel.builder().user(userModel)
-        .title(draftArticle.getTitle()).content(draftArticle.getContent()).likeCount(0).build();
+        .title(draftArticle.getTitle()).likeCount(0).build();
     articleModel = articleRepository.save(articleModel);
     return convertArticleModelToDTO(articleModel, userModel);
   }
@@ -330,10 +339,10 @@ public class ArticleService {
     Optional.ofNullable(draftArticle.getPreviewContent())
         .ifPresent(articleModel::setPreviewContent);
     Optional.ofNullable(draftArticle.getContent()).ifPresent(articleModel::setContent);
-    Optional.ofNullable(draftArticle.getImageUrl()).ifPresent(articleModel::setImageUrl);
+
     List<Long> categoryIds = draftArticle.getCategoryIds();
-    if (categoryIds != null && !categoryIds.isEmpty()) {
-      List<CategoryModel> categories = new ArrayList<>(categoryRepository.findAllById(categoryIds));
+    if (categoryIds != null) {
+      List<CategoryModel> categories = categoryRepository.findAllById(categoryIds);
       articleModel.setCategories(categories);
     }
 
@@ -508,7 +517,6 @@ public class ArticleService {
     articleModel.setCategories(categories);
     articleModel.setTags(tagModels);
     articleModel.setUser(userModel);
-    articleModel.setImageUrl(updateArticle.getImageUrl());
     articleRepository.save(articleModel);
     List<UserModel> moderators = userRepository.findAllByRole(Role.ROLE_ADMIN);
     moderators.forEach(moderator -> {
@@ -680,11 +688,27 @@ public class ArticleService {
         .title(compilationArticle.getCompilation().getTitle()).build()).toList();
     Language interfaceLanguage = localizationContext.getLanguage();
     int commentsCount = articleModel.getComments() != null ? articleModel.getComments().size() : 0;
+    ArticleImageModel articleImage = articleImageRepository.findByArticleIdAndIsPreviewIsTrue(
+        articleModel.getId()).orElse(null);
+    Palette palette = articleImage == null ? null : articleImage.getPalette();
+    SwatchDTO vibrant = palette == null ? null : buildSwatchDTO(palette.getVibrant());
+    SwatchDTO muted = palette == null ? null : buildSwatchDTO(palette.getMuted());
+    SwatchDTO darkVibrant = palette == null ? null : buildSwatchDTO(palette.getDarkVibrant());
+    SwatchDTO darkMuted = palette == null ? null : buildSwatchDTO(palette.getDarkMuted());
+    SwatchDTO lightVibrant = palette == null ? null : buildSwatchDTO(palette.getLightVibrant());
+    SwatchDTO lightMuted = palette == null ? null : buildSwatchDTO(palette.getLightMuted());
+    PaletteDTO paletteDTO =
+        palette == null ? null : PaletteDTO.builder().vibrant(vibrant).muted(muted)
+            .darkVibrant(darkVibrant).darkMuted(darkMuted).lightVibrant(lightVibrant)
+            .lightMuted(lightMuted).build();
+    GetImageWithPalette image = articleImage == null ? null
+        : GetImageWithPalette.builder().imageUrl(articleImage.getImageUrl())
+            .filename(articleImage.getFilename()).palette(paletteDTO).build();
     return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
         .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
         .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
             .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
-        .imageUrl(articleModel.getImageUrl()).previewContent(articleModel.getPreviewContent())
+        .image(image).previewContent(articleModel.getPreviewContent())
         .content(articleModel.getContent()).username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())
         .categories(articleModel.getCategories().stream().map(category -> {
@@ -696,5 +720,12 @@ public class ArticleService {
             .toList()).compilationsCount(articleModel.getCompilationArticles().size())
         .commentsCount(commentsCount).createdAt(articleModel.getCreatedAt())
         .updatedAt(articleModel.getUpdatedAt()).build();
+  }
+
+  private SwatchDTO buildSwatchDTO(Swatch swatch) {
+    return SwatchDTO.builder().r(swatch.getR()).g(swatch.getG()).b(swatch.getB()).h(swatch.getH())
+        .s(swatch.getS()).l(swatch.getL()).hex(swatch.getHex())
+        .titleTextColor(swatch.getTitleTextColor()).bodyTextColor(swatch.getBodyTextColor())
+        .build();
   }
 }

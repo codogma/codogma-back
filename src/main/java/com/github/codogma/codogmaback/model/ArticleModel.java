@@ -53,7 +53,7 @@ public class ArticleModel {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @FullTextField
-  @Builder.Default
+  @Default
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   private Status status = Status.DRAFT;
@@ -69,8 +69,10 @@ public class ArticleModel {
   @MultiLanguageField
   @Column(nullable = false)
   private String title;
-  @Column(name = "image_url")
-  private String imageUrl;
+  @Default
+  @Exclude
+  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<ArticleImageModel> images = new ArrayList<>();
   @FullTextField
   @Column(columnDefinition = "TEXT")
   private String previewContent;
@@ -78,37 +80,37 @@ public class ArticleModel {
   @MultiLanguageField
   @Column(columnDefinition = "TEXT")
   private String content;
+  @Exclude
   @IndexedEmbedded
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
-  @Exclude
   private UserModel user;
+  @Exclude
   @Default
   @IndexedEmbedded(includePaths = {"id"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_categories", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
-  @Exclude
   private List<CategoryModel> categories = new ArrayList<>();
-  @Builder.Default
-  @IndexedEmbedded
-  @OneToMany(mappedBy = "article")
   @Exclude
+  @Default
+  @IndexedEmbedded
+  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CompilationArticle> compilationArticles = new ArrayList<>();
+  @Exclude
   @Default
   @IndexedEmbedded(includePaths = {"id", "name"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_tags", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
-  @Exclude
   private List<TagModel> tags = new ArrayList<>();
-  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Exclude
   @OrderBy("createdAt ASC")
-  @Exclude
-  private List<CommentModel> comments = new ArrayList<>();
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<CommentModel> comments = new ArrayList<>();
   @Exclude
+  @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ArticleView> views = new ArrayList<>();
-  @GenericField(sortable = Sortable.YES)
   @CreationTimestamp
+  @GenericField(sortable = Sortable.YES)
   @Column(nullable = false, updatable = false, name = "created_at")
   private LocalDateTime createdAt;
   @GenericField(sortable = Sortable.YES)

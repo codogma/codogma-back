@@ -1,6 +1,7 @@
 package com.github.codogma.codogmaback.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.Status;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -16,7 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Get Article")
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 public class GetArticle {
 
   @Schema(description = "ID of the article", example = "1")
@@ -38,7 +39,7 @@ public class GetArticle {
   @Schema(description = "Title of the article", example = "My First Blog Article")
   private String title;
   @Schema(description = "Preview image of the article")
-  private String imageUrl;
+  private GetImageWithPalette image;
   @Schema(description = "Preview content of the article", example = "This is the preview content of the article")
   private String previewContent;
   @Schema(description = "Content of the article", example = "This is the content of the article")

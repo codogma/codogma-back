@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class StringToMapConverter implements Converter<String, Map<Language, String>> {
+public class StringToMap implements Converter<String, Map<Language, String>> {
 
   private final ObjectMapper objectMapper;
 

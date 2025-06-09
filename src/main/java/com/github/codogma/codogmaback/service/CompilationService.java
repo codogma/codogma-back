@@ -3,19 +3,21 @@ package com.github.codogma.codogmaback.service;
 import com.github.codogma.codogmaback.dto.CreateCompilation;
 import com.github.codogma.codogmaback.dto.GetArticle;
 import com.github.codogma.codogmaback.dto.GetCompilation;
+import com.github.codogma.codogmaback.dto.GetImageWithPalette;
 import com.github.codogma.codogmaback.dto.UpdateCompilation;
 import com.github.codogma.codogmaback.exception.BookmarkAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.CompilationNotFoundException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
+import com.github.codogma.codogmaback.model.ArticleImageModel;
 import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.BookmarkModel;
 import com.github.codogma.codogmaback.model.CompilationArticle;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.Status;
 import com.github.codogma.codogmaback.model.UserModel;
+import com.github.codogma.codogmaback.repository.ArticleImageRepository;
 import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.BookmarkRepository;
-import com.github.codogma.codogmaback.repository.CompilationArticleRepository;
 import com.github.codogma.codogmaback.repository.CompilationRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.CompilationSpecifications;
@@ -57,7 +59,7 @@ public class CompilationService {
   private final CompilationRepository compilationRepository;
   private final BookmarkRepository bookmarkRepository;
   private final FileUploadUtil fileUploadUtil;
-  private final CompilationArticleRepository compilationArticleRepository;
+  private final ArticleImageRepository articleImageRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -103,7 +105,7 @@ public class CompilationService {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
     Optional.ofNullable(createCompilation.getImage()).filter(image -> !image.isEmpty())
-        .map(fileUploadUtil::uploadCompilationAvatar).ifPresent(compilation::setImageUrl);
+        .map(fileUploadUtil::uploadCompilationImage).ifPresent(compilation::setImageUrl);
     compilationRepository.save(compilation);
   }
 
@@ -157,7 +159,7 @@ public class CompilationService {
         .ifPresent(compilation::setTitle);
     Optional.ofNullable(updateCompilation.getDescription()).ifPresent(compilation::setDescription);
     Optional.ofNullable(updateCompilation.getImage()).filter(image -> !image.isEmpty())
-        .map(fileUploadUtil::uploadCompilationAvatar).ifPresent(compilation::setImageUrl);
+        .map(fileUploadUtil::uploadCompilationImage).ifPresent(compilation::setImageUrl);
     compilationRepository.save(compilation);
   }
 
@@ -211,10 +213,16 @@ public class CompilationService {
           return userModel != null ? article.getUser().getId().equals(userModel.getId())
               || article.getStatus().equals(Status.PUBLISHED)
               : article.getStatus().equals(Status.PUBLISHED);
-        }).limit(MAX_COMPILATION_ARTICLE_SIZE).map(
-            compilationArticle -> GetArticle.builder().id(compilationArticle.getArticle().getId())
-                .title(compilationArticle.getArticle().getTitle())
-                .imageUrl(compilationArticle.getArticle().getImageUrl()).build()).toList();
+        }).limit(MAX_COMPILATION_ARTICLE_SIZE).map(compilationArticle -> {
+          ArticleModel article = compilationArticle.getArticle();
+          ArticleImageModel articleImage = articleImageRepository.findByArticleIdAndIsPreviewIsTrue(
+              article.getId()).orElse(null);
+          GetImageWithPalette image = articleImage == null ? null
+              : GetImageWithPalette.builder().imageUrl(articleImage.getImageUrl())
+                  .filename(articleImage.getFilename()).build();
+          return GetArticle.builder().id(article.getId()).title(article.getTitle())
+              .image(image).build();
+        }).toList();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())
         .description(compilation.getDescription()).ownerName(compilation.getUser().getUsername())

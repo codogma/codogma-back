@@ -18,6 +18,4 @@ public class CreateDraftArticle {
   @NotBlank(message = "Title cannot be null and must contain a value")
   @Schema(description = "Title of the article", example = "My First Blog Article", requiredMode = RequiredMode.REQUIRED)
   private String title;
-  @Schema(description = "Content of the article", example = "This is the content of the article")
-  private String content;
 }

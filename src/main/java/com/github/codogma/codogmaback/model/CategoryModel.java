@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -53,9 +54,9 @@ public class CategoryModel {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @ElementCollection
-  @FullTextField(name = "name", analyzer = "standard")
   @MapKeyColumn(name = "language")
   @MapKeyEnumerated(EnumType.STRING)
+  @FullTextField(name = "name", analyzer = "standard")
   @CollectionTable(name = "category_localized_names", joinColumns = @JoinColumn(name = "category_id"), uniqueConstraints = {
       @UniqueConstraint(columnNames = {"name", "language"})})
   @Column(nullable = false)
@@ -66,20 +67,24 @@ public class CategoryModel {
   @MapKeyEnumerated(EnumType.STRING)
   @CollectionTable(name = "category_localized_descriptions", joinColumns = @JoinColumn(name = "category_id"))
   private Map<Language, String> description = new HashMap<>();
-  @Column(name = "image_url")
-  private String imageUrl;
+  @Default
+  @Exclude
+  @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<CategoryImageModel> images = new ArrayList<>();
+  @Default
+  @Exclude
   @ManyToMany(fetch = FetchType.LAZY, mappedBy = "categories")
-  @Exclude
   private List<ArticleModel> articles = new ArrayList<>();
-  @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+  @Default
   @Exclude
+  @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
   private List<FavoriteModel> favorites = new ArrayList<>();
-  @GenericField(sortable = Sortable.YES)
   @CreationTimestamp
+  @GenericField(sortable = Sortable.YES)
   @Column(nullable = false, updatable = false, name = "created_at")
   private LocalDateTime createdAt;
-  @GenericField(sortable = Sortable.YES)
   @UpdateTimestamp
   @Column(name = "updated_at")
+  @GenericField(sortable = Sortable.YES)
   private LocalDateTime updatedAt;
 }

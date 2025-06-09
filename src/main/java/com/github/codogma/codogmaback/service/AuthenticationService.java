@@ -1,5 +1,8 @@
 package com.github.codogma.codogmaback.service;
 
+import static com.github.codogma.codogmaback.util.TokenUtils.invalidateToken;
+import static com.github.codogma.codogmaback.util.TokenUtils.setAuthCookie;
+
 import com.github.codogma.codogmaback.dto.AuthenticationResponse;
 import com.github.codogma.codogmaback.dto.GetUser;
 import com.github.codogma.codogmaback.dto.SignInRequest;
@@ -11,8 +14,6 @@ import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.util.FileUploadUtil;
-import static com.github.codogma.codogmaback.util.TokenUtils.invalidateToken;
-import static com.github.codogma.codogmaback.util.TokenUtils.setAuthCookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
@@ -60,7 +61,7 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
         .email(signUpRequest.getEmail())
         .password(passwordEncoder.encode(signUpRequest.getPassword())).role(Role.ROLE_USER).build();
     Optional.ofNullable(avatar).filter(image -> !image.isEmpty())
-        .map(fileUploadUtil::uploadCategoryAvatar).ifPresent(user::setAvatarUrl);
+        .map(fileUploadUtil::uploadCategoryImage).ifPresent(user::setAvatarUrl);
     userRepository.save(user);
     String token = jwtService.generateToken(user);
     ConfirmationToken confirmationToken = ConfirmationToken.builder().token(token).user(user)

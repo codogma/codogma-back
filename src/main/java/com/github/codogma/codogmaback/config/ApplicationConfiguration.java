@@ -1,8 +1,9 @@
 package com.github.codogma.codogmaback.config;
 
 
-import com.github.codogma.codogmaback.converter.localization.StringToLanguageConverter;
-import com.github.codogma.codogmaback.converter.localization.StringToMapConverter;
+import com.github.codogma.codogmaback.converter.image.StringToPalette;
+import com.github.codogma.codogmaback.converter.localization.StringToLanguage;
+import com.github.codogma.codogmaback.converter.localization.StringToMap;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationInterceptor;
 import com.github.codogma.codogmaback.repository.UserRepository;
@@ -31,8 +32,9 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
   private final ExceptionFactory exceptionFactory;
   private final LocalizationInterceptor localizationInterceptor;
-  private final StringToMapConverter stringToMapConverter;
-  private final StringToLanguageConverter stringToLanguageConverter;
+  private final StringToLanguage stringToLanguage;
+  private final StringToMap stringToMap;
+  private final StringToPalette stringToPalette;
   private final UserRepository userRepository;
 
   @Value("${user.avatar.upload-dir}")
@@ -64,8 +66,9 @@ public class ApplicationConfiguration implements WebMvcConfigurer {
 
   @Override
   public void addFormatters(FormatterRegistry registry) {
-    registry.addConverter(stringToMapConverter);
-    registry.addConverter(stringToLanguageConverter);
+    registry.addConverter(stringToLanguage);
+    registry.addConverter(stringToMap);
+    registry.addConverter(stringToPalette);
   }
 
   @Bean
