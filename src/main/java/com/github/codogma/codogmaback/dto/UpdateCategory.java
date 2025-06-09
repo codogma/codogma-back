@@ -16,10 +16,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Schema(name = "Update Category")
 public class UpdateCategory {
 
-  @Schema(description = "Name of the category", example = "Software Engineering")
+  @Schema(description = "Name of the category", example = "{ \"en\": \"Programming\", \"ru\": \"Программирование\" }")
   private Map<Language, String> name;
-  @Schema(description = "Tag's image")
+  @Schema(description = "Category's icon")
+  private MultipartFile icon;
+  @Schema(description = "Category's image")
   private MultipartFile image;
-  @Schema(description = "Description of the category", example = "Articles about technology")
+  @Schema(description = "Palette of the image")
+  private PaletteDTO palette;
+  @Schema(description = "Description of the category", example = "{ \"en\": \"Articles about technology\", \"ru\": \"Статьи о технологиях\" }")
   private Map<Language, String> description;
 }

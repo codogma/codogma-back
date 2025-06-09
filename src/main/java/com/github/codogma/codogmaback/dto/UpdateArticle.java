@@ -27,9 +27,6 @@ public class UpdateArticle {
   @NotBlank(message = "Title cannot be null and must contain a value")
   @Schema(description = "Title of the article", example = "My First Blog Article", requiredMode = RequiredMode.REQUIRED)
   private String title;
-  @NotNull(message = "Preview image cannot be empty")
-  @Schema(description = "Preview image of the article", requiredMode = RequiredMode.REQUIRED)
-  private String imageUrl;
   @NotBlank(message = "Preview content cannot be null and must contain a value")
   @Schema(description = "Preview content of the article", example = "This is the preview content of the article", requiredMode = RequiredMode.REQUIRED)
   private String previewContent;

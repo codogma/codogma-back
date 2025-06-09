@@ -91,9 +91,9 @@ public class CategoryController {
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<GetCategory> createCategory(
-      @Valid @ModelAttribute CreateCategory createCategoryDTO,
+      @Valid @ModelAttribute CreateCategory createCategory,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory createdCategory = categoryService.createCategory(createCategoryDTO, userModel);
+    GetCategory createdCategory = categoryService.createCategory(createCategory, userModel);
     return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
   }
 
@@ -102,10 +102,10 @@ public class CategoryController {
   @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<GetCategory> updateCategory(@PathVariable Long id,
-      @Valid @ModelAttribute UpdateCategory updateCategoryDTO,
+      @Valid @ModelAttribute UpdateCategory updateCategory,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory updatedCategory = categoryService.updateCategory(id, updateCategoryDTO, userModel);
-    return new ResponseEntity<>(updatedCategory, HttpStatus.OK);
+    GetCategory updatedCategory = categoryService.updateCategory(id, updateCategory, userModel);
+    return ResponseEntity.ok(updatedCategory);
   }
 
   @DeleteMapping("/{id:\\d+}")

@@ -6,7 +6,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
-public class StringToLanguageConverter implements Converter<String, Language> {
+public class StringToLanguage implements Converter<String, Language> {
 
   @Override
   public Language convert(@NonNull String source) {

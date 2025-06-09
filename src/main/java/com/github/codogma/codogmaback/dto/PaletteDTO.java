@@ -3,8 +3,6 @@ package com.github.codogma.codogmaback.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,11 +12,14 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "Compilations")
+@Schema(name = "Palette")
 @JsonInclude(Include.NON_NULL)
-public class CompilationsDTO {
+public class PaletteDTO {
 
-  @NotNull(message = "Compilation ids cannot be null")
-  @Schema(description = "Compilation ids associated with the article")
-  private List<Long> compilationIds;
+  private SwatchDTO vibrant;
+  private SwatchDTO muted;
+  private SwatchDTO darkVibrant;
+  private SwatchDTO darkMuted;
+  private SwatchDTO lightVibrant;
+  private SwatchDTO lightMuted;
 }

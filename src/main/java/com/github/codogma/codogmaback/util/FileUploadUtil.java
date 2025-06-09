@@ -40,12 +40,12 @@ public class FileUploadUtil {
       throw new IllegalArgumentException("File is empty or null");
     }
 
-    String filename = "image-" + UUID.randomUUID() + getFileExtension(file);
+    String filename = "article-image-" + UUID.randomUUID() + getFileExtension(file);
     saveFile(file, articleImageUploadDir, filename);
     return String.format("%s/articles/images/%s", contextPath, filename);
   }
 
-  public String uploadCategoryAvatar(MultipartFile file) {
+  public String uploadCategoryImage(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new IllegalArgumentException("File is empty or null");
     }
@@ -55,7 +55,7 @@ public class FileUploadUtil {
     return String.format("%s/categories/images/%s", contextPath, filename);
   }
 
-  public String uploadCompilationAvatar(MultipartFile file) {
+  public String uploadCompilationImage(MultipartFile file) {
     if (file == null || file.isEmpty()) {
       throw new IllegalArgumentException("File is empty or null");
     }

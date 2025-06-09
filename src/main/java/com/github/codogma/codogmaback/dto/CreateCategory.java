@@ -21,8 +21,12 @@ public class CreateCategory {
   @NotEmpty(message = "Name cannot be empty")
   @Schema(description = "Name of the category", example = "{ \"en\": \"Programming\", \"ru\": \"Программирование\" }", requiredMode = RequiredMode.REQUIRED)
   private Map<Language, String> name;
+  @Schema(description = "Category's icon", requiredMode = RequiredMode.REQUIRED)
+  private MultipartFile icon;
   @Schema(description = "Category's image", requiredMode = RequiredMode.REQUIRED)
   private MultipartFile image;
+  @Schema(description = "Palette of the image")
+  private PaletteDTO palette;
   @Schema(description = "Description of the category", example = "{ \"en\": \"Articles about technology\", \"ru\": \"Статьи о технологиях\" }")
   private Map<Language, String> description;
 }

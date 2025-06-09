@@ -1,6 +1,7 @@
 package com.github.codogma.codogmaback.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.github.codogma.codogmaback.model.Language;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.Map;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Get System Notification")
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 public class GetSystemNotification {
 
   @Schema(description = "Title of the notification", example = "{ \"en\": \"System Update\", \"ru\": \"Системное обновление\" }")

@@ -1,6 +1,7 @@
 package com.github.codogma.codogmaback.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.github.codogma.codogmaback.model.NotificationType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -13,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Get Notification")
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(Include.NON_NULL)
 public class GetNotification {
 
   @Schema(description = "ID of the notification", example = "1")

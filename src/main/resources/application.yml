@@ -14,7 +14,7 @@ spring:
           format_sql: true
       database: postgresql
       database-platform: org.hibernate.dialect.PostgreSQLDialect
-      show-sql: true
+    show-sql: true
     open-in-view: false
     properties:
       hibernate:
@@ -42,9 +42,9 @@ spring:
     properties:
       mail:
         smtp:
-          starttls:
-            enable: true
           auth: true
+          ssl:
+            enable: true
         debug: true
   security:
     jwt:
