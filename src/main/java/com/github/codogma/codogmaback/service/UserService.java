@@ -1,15 +1,18 @@
 package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.dto.GetCategory;
+import com.github.codogma.codogmaback.dto.GetImage;
 import com.github.codogma.codogmaback.dto.GetUser;
 import com.github.codogma.codogmaback.dto.UpdateUser;
 import com.github.codogma.codogmaback.dto.UserRole;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
+import com.github.codogma.codogmaback.model.CategoryImageModel;
 import com.github.codogma.codogmaback.model.CategoryModel;
 import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.SubscriptionModel;
 import com.github.codogma.codogmaback.model.UserModel;
+import com.github.codogma.codogmaback.repository.CategoryImageRepository;
 import com.github.codogma.codogmaback.repository.CategoryRepository;
 import com.github.codogma.codogmaback.repository.SubscriptionRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
@@ -49,6 +52,7 @@ public class UserService {
   private final PasswordEncoder passwordEncoder;
   private final LocalizationContext localizationContext;
   private final LocalizationUtil localizationUtil;
+  private final CategoryImageRepository categoryImageRepository;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -177,9 +181,15 @@ public class UserService {
         .firstName(targetUser.getFirstName()).lastName(targetUser.getLastName())
         .shortInfo(targetUser.getShortInfo()).bio(targetUser.getBio())
         .avatarUrl(targetUser.getAvatarUrl()).categories(categories.stream().map(category -> {
+          CategoryImageModel categoryIcon = categoryImageRepository.findByCategoryIdAndIsIconIsTrue(
+              category.getId()).orElse(null);
+          GetImage icon = categoryIcon == null ? null
+              : GetImage.builder().imageUrl(categoryIcon.getImageUrl())
+                  .filename(categoryIcon.getFilename()).build();
           String localizedCategoryName = category.getName()
               .getOrDefault(interfaceLanguage, category.getName().get(Language.EN));
-          return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
+          return GetCategory.builder().id(category.getId()).icon(icon).name(localizedCategoryName)
+              .build();
         }).toList()).role(targetUser.getRole()).build();
   }
 }

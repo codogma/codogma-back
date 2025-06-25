@@ -160,7 +160,8 @@ public class CategoryService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(cacheNames = {"categories", "categoriesByName"}, allEntries = true),
+  @Caching(evict = {
+      @CacheEvict(cacheNames = {"categories", "categoriesByName", "users"}, allEntries = true),
       @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
   public GetCategory updateCategory(Long categoryId, UpdateCategory updateCategory,
       UserModel userModel) {
