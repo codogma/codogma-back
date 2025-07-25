@@ -13,7 +13,7 @@ public interface UserRepository extends JpaRepository<UserModel, Long>,
     JpaSpecificationExecutor<UserModel> {
 
   List<UserModel> findAllByRole(Role role);
-  
+
 // TODO delete this code after testing
 //  List<UserModel> findAllByRoleAndRoleIsNot(Role role, Role role2);
 //

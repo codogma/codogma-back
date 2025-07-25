@@ -8,6 +8,8 @@ import com.github.codogma.codogmaback.security.JwtAuthenticationFilter;
 import com.github.codogma.codogmaback.security.RedirectUriFilter;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,12 +27,16 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(securedEnabled = true, jsr250Enabled = true)
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
+  @Value("${cors.max-age:300}")
+  private long maxAge;
+  private final CorsProperties corsProperties;
   private final AuthenticationProvider authenticationProvider;
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final ExceptionHandlingFilter exceptionHandlingFilter;
@@ -41,14 +47,13 @@ public class SecurityConfiguration {
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     return http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource())).authorizeHttpRequests(
-            auth -> auth.requestMatchers("/auth/**", "/swagger-ui.html", "/swagger-ui/**",
-                    "/api-docs/**", "/v3/api-docs/**").permitAll()
+            auth -> auth.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**",
+                    "/v3/api-docs/**", "/auth/**", "/ws/**", "/error", "/swagger-resources/**")
+                .permitAll()
                 .requestMatchers(HttpMethod.GET, "/articles/**", "/categories/**", "/users/**",
                     "/compilations/**", "/images/**", "/comments/**", "/tags/**",
-                    "/notifications/**", "/recommendations/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/articles/*/record-view").permitAll()
-                .requestMatchers("/ws/**").permitAll()
-                .anyRequest().authenticated()).oauth2Login(
+                    "/notifications/**", "/recommendations/**").permitAll().anyRequest()
+                .authenticated()).oauth2Login(
             oauth2 -> oauth2.successHandler(customOAuth2SuccessHandler).userInfoEndpoint(
                 userInfo -> userInfo.userAuthoritiesMapper(new SimpleAuthorityMapper())))
         .exceptionHandling(
@@ -66,10 +71,15 @@ public class SecurityConfiguration {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     var corsConfiguration = new CorsConfiguration();
+    List<String> allowedOriginPatterns = corsProperties.getAllowedOriginPatterns();
+    //TODO надо будет allowedOriginPatterns прописать в конфиге потом
     corsConfiguration.setAllowedOriginPatterns(List.of("*"));
     corsConfiguration.setAllowedMethods(List.of("*"));
     corsConfiguration.setAllowedHeaders(List.of("*"));
+    corsConfiguration.addExposedHeader("Content-Disposition");
+    corsConfiguration.addExposedHeader("X-Security-Event");
     corsConfiguration.setAllowCredentials(true);
+    corsConfiguration.setMaxAge(maxAge);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", corsConfiguration);
     return source;

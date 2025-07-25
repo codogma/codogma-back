@@ -19,7 +19,6 @@ import com.github.codogma.codogmaback.repository.CommentRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.repository.specifications.CommentSpecifications;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
-import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Objects;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +34,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor

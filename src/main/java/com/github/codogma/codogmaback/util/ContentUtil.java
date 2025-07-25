@@ -7,6 +7,9 @@ import org.jsoup.nodes.TextNode;
 
 public class ContentUtil {
 
+  private ContentUtil() {
+  }
+
   public static String createHtmlPreview(String htmlContent, int maxLength) {
     Document document = Jsoup.parseBodyFragment(htmlContent);
     Element body = document.body();
@@ -92,8 +95,8 @@ public class ContentUtil {
 
   private static boolean isHeadingTag(Element element) {
     String tagName = element.tagName();
-    return tagName.equals("h1") || tagName.equals("h2") || tagName.equals("h3") ||
-        tagName.equals("h4") || tagName.equals("h5") || tagName.equals("h6");
+    return tagName.equals("h1") || tagName.equals("h2") || tagName.equals("h3") || tagName.equals(
+        "h4") || tagName.equals("h5") || tagName.equals("h6");
   }
 
   private static String truncateTextAtSentenceBoundary(String text, int maxLength) {

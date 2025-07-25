@@ -11,7 +11,6 @@ import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.repository.NotificationRepository;
 import com.github.codogma.codogmaback.repository.specifications.NotificationSpecifications;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
-import jakarta.transaction.Transactional;
 import java.util.List;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service

@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.exception;
 
 import com.github.codogma.codogmaback.dto.ErrorResponse;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -141,10 +142,24 @@ public class GlobalExceptionHandler {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.FORBIDDEN);
   }
 
+  @ExceptionHandler(DeviceMismatchException.class)
+  public ResponseEntity<ErrorResponse> handleDeviceMismatchException(DeviceMismatchException ex,
+      HttpServletRequest request) {
+    // Логирование с контекстом запроса
+    log.warn("Device mismatch detected: {}", ex.getMessage());
+    // Формирование структурированного ответа
+    ErrorResponse error = ErrorResponse.builder().errorCode("DEVICE_MISMATCH")
+        .message("Session terminated for security reasons").reauthenticate(true)
+        .path(request.getRequestURI()).build();
+
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "device_mismatch").body(error);
+  }
+
   @ExceptionHandler(AuthenticationException.class)
   public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
-    log.error("Authentication exception caught", ex);
-    ErrorResponse errorResponse = ErrorResponse.builder().error("Unauthorized")
+    log.warn("Authentication exception caught: {}", ex.getMessage());
+    ErrorResponse errorResponse = ErrorResponse.builder().errorCode("Unauthorized")
         .message("Authentication failed. Please check your credentials.").build();
     return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
   }
@@ -152,29 +167,39 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(AuthorizationDeniedException.class)
   public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
       AuthorizationDeniedException ex) {
-    log.error("Authorization denied exception caught", ex);
-    ErrorResponse errorResponse = ErrorResponse.builder().error("Forbidden")
+    log.warn("Authorization denied exception caught: {}", ex.getMessage());
+    ErrorResponse errorResponse = ErrorResponse.builder().errorCode("Forbidden")
         .message("You do not have permission to access this resource.").build();
     return new ResponseEntity<>(errorResponse, HttpStatus.FORBIDDEN);
+  }
+
+  @ExceptionHandler(NullPointerException.class)
+  public ResponseEntity<ErrorResponse> handleNullPointerException(NullPointerException ex) {
+    log.error("Unexpected null pointer: {}", ex.getMessage());
+    ErrorResponse errorResponse = ErrorResponse.builder().errorCode("InternalServerError")
+        .message("An unexpected error occurred.").build();
+    return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
   }
 
   @ExceptionHandler(InsufficientAuthenticationException.class)
   public ResponseEntity<ErrorResponse> handleInsufficientAuthenticationException(
       InsufficientAuthenticationException ex) {
     log.error("Insufficient authentication exception caught", ex);
-    ErrorResponse errorResponse = ErrorResponse.builder().error("Unauthorized")
+    ErrorResponse errorResponse = ErrorResponse.builder().errorCode("Unauthorized")
         .message(localizationUtil.getMessage("auth.insufficient")).build();
     return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
   }
 
   @ExceptionHandler(TokenExpiredException.class)
   public ResponseEntity<String> handleTokenExpiredException(TokenExpiredException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "token_expired").body(ex.getMessage());
   }
 
   @ExceptionHandler(InvalidTokenException.class)
   public ResponseEntity<String> handleInvalidTokenException(InvalidTokenException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "invalid_refresh_token").body(ex.getMessage());
   }
 
   @ExceptionHandler(FileStorageException.class)

@@ -1,7 +1,7 @@
 package com.github.codogma.codogmaback.interceptor;
 
-import com.github.codogma.codogmaback.service.JwtService;
-import com.github.codogma.codogmaback.util.TokenUtils;
+import com.github.codogma.codogmaback.security.JwtProvider;
+import com.github.codogma.codogmaback.util.CookieUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
@@ -22,16 +22,21 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
-  private final JwtService jwtService;
+  private final JwtProvider jwtProvider;
+  private final CookieUtils cookieUtils;
   private final UserDetailsService userDetailsService;
 
   @Override
   public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
     StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+    String destination = accessor.getDestination();
+
+    if (destination != null && destination.startsWith("/topic/public")) {
+      return message;
+    }
 
     // Для команд, отличных от SUBSCRIBE, можно добавить проверку, если нужно
     if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
-      String destination = accessor.getDestination();
 
       // Если подписка на публичный канал – пропускаем проверку
       if (destination != null && destination.startsWith("/topic/public")) {
@@ -44,16 +49,16 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
       }
 
       // Если пользователь не аутентифицирован, пытаемся извлечь токен
-      String token = TokenUtils.extractToken(accessor);
+      String token = cookieUtils.extractAccessToken(accessor);
       if (token == null || token.trim().isEmpty()) {
         log.error("Missing authentication token for destination: {}", destination);
         throw new AuthenticationCredentialsNotFoundException("Missing authentication token");
       }
 
-      String username = jwtService.extractUsername(token);
+      String username = jwtProvider.extractUsername(token);
       UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-      if (!jwtService.isTokenValid(token, userDetails)) {
+      if (!jwtProvider.isTokenValid(token)) {
         log.error("Invalid authentication token for destination: {}", destination);
         throw new BadCredentialsException("Invalid authentication token");
       }

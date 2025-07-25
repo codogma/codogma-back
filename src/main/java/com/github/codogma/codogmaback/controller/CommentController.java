@@ -8,7 +8,6 @@ import com.github.codogma.codogmaback.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -61,7 +60,6 @@ public class CommentController {
 
   @PostMapping
   @Operation(summary = "Add a new comment")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("isAuthenticated()")
   public ResponseEntity<GetComment> createComment(@Valid @RequestBody CreateComment createComment,
       @AuthenticationPrincipal UserModel userModel) {
@@ -71,7 +69,6 @@ public class CommentController {
 
   @PatchMapping("/{commentId}/publish")
   @Operation(summary = "Publish the comment")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public GetComment publishComment(@PathVariable Long commentId) {
     return commentService.publishComment(commentId);
@@ -79,7 +76,6 @@ public class CommentController {
 
   @PatchMapping("/{commentId}/block")
   @Operation(summary = "Block the comment")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public GetComment blockComment(@PathVariable Long commentId) {
     return commentService.blockComment(commentId);
@@ -87,7 +83,6 @@ public class CommentController {
 
   @PutMapping("/{commentId}")
   @Operation(summary = "Update the comment")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("isAuthenticated()")
   public GetComment updateComment(@PathVariable Long commentId,
       @Valid @RequestBody UpdateComment updateComment,
@@ -97,7 +92,6 @@ public class CommentController {
 
   @DeleteMapping("/{commentId}")
   @Operation(summary = "Delete the comment")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("isAuthenticated()")
   public void deleteComment(@PathVariable Long commentId,
       @AuthenticationPrincipal UserDetails userDetails) {

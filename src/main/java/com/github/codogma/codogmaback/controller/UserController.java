@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.Map;
@@ -84,7 +83,6 @@ public class UserController {
 
   @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the user by username")
-  @SecurityRequirement(name = "bearerAuth")
   public ResponseEntity<Object> updateUser(@Valid @ModelAttribute UpdateUser updateUser,
       @RequestPart(value = "avatar", required = false) MultipartFile avatar,
       @AuthenticationPrincipal UserModel userModel, BindingResult bindingResult) {
@@ -102,7 +100,6 @@ public class UserController {
 
   @DeleteMapping("/{username}")
   @Operation(summary = "Delete the user by username")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_USER')")
   public ResponseEntity<Void> deleteUser(@PathVariable String username) {
     userService.deleteUser(username);
@@ -111,7 +108,6 @@ public class UserController {
 
   @PostMapping("/{username}/subscribe")
   @Operation(summary = "Subscribe to the user")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetUser> subscribe(@PathVariable String username,
       @AuthenticationPrincipal UserModel userModel) {
@@ -121,7 +117,6 @@ public class UserController {
 
   @DeleteMapping("/{username}/unsubscribe")
   @Operation(summary = "Unsubscribe from the user")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetUser> unsubscribe(@PathVariable String username,
       @AuthenticationPrincipal UserModel userModel) {

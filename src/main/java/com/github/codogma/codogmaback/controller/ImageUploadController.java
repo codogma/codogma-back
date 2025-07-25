@@ -4,7 +4,6 @@ import com.github.codogma.codogmaback.dto.CreateArticleImage;
 import com.github.codogma.codogmaback.dto.PaletteDTO;
 import com.github.codogma.codogmaback.service.ImageUploadService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -30,7 +29,6 @@ public class ImageUploadController {
 
   @PostMapping(value = "/upload/{articleId:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Upload image")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<String> upload(@PathVariable Long articleId,
       @RequestPart("image") MultipartFile image,

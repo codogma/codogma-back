@@ -38,7 +38,7 @@ public class CompilationArticle {
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "article_id")
   private ArticleModel article;
-  
+
   @Column(name = "position")
   private Integer position;
 }

@@ -9,7 +9,6 @@ import com.github.codogma.codogmaback.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -88,7 +87,6 @@ public class CategoryController {
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Create a new category")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<GetCategory> createCategory(
       @Valid @ModelAttribute CreateCategory createCategory,
@@ -99,7 +97,6 @@ public class CategoryController {
 
   @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the category")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<GetCategory> updateCategory(@PathVariable Long id,
       @Valid @ModelAttribute UpdateCategory updateCategory,
@@ -110,7 +107,6 @@ public class CategoryController {
 
   @DeleteMapping("/{id:\\d+}")
   @Operation(summary = "Delete the category")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<String> deleteCategory(@PathVariable Long id) {
     categoryService.deleteCategory(id);
@@ -119,7 +115,6 @@ public class CategoryController {
 
   @PostMapping("/{id:\\d+}/add-to-favorites")
   @Operation(summary = "Add the category to favorites")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetCategory> addToFavorites(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -129,7 +124,6 @@ public class CategoryController {
 
   @DeleteMapping("/{id:\\d+}/unfavorite")
   @Operation(summary = "Unfavorite the category")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetCategory> unfavorite(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
