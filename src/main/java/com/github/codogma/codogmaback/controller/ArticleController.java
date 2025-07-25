@@ -10,7 +10,6 @@ import com.github.codogma.codogmaback.service.ArticleService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -75,7 +74,8 @@ public class ArticleController {
   }
 
   @GetMapping("/viewed")
-  @PreAuthorize("isAuthenticated()")
+  @PreAuthorize("isFullyAuthenticated()")
+  // TODO заменить на @PreAuthorize("isFullyAuthenticated()")
   @Operation(summary = "Get viewed articles", description = "Retrieve all viewed articles. Supports pagination and multiple filter combinations to narrow down search results.")
   @Parameters({@Parameter(name = "tag", description = "Tag to filter articles"),
       @Parameter(name = "content", description = "Content to filter articles"),
@@ -142,7 +142,6 @@ public class ArticleController {
 
   @GetMapping("/drafts")
   @Operation(summary = "Get author's draft articles")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<List<GetArticle>> getDraftArticles(
       @AuthenticationPrincipal UserModel userModel) {
@@ -152,7 +151,6 @@ public class ArticleController {
 
   @GetMapping("/{id:\\d+}/draft")
   @Operation(summary = "Get author's drafted article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<GetArticle> getDraftedArticleById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -162,7 +160,6 @@ public class ArticleController {
 
   @PostMapping("/drafts")
   @Operation(summary = "Create draft article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<GetArticle> createDraftArticle(
       @Valid @RequestBody CreateDraftArticle draftArticle,
@@ -173,7 +170,6 @@ public class ArticleController {
 
   @PatchMapping("/{id:\\d+}/draft")
   @Operation(summary = "Update draft article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> updateDraftArticle(@PathVariable Long id,
       @Valid @RequestBody UpdateDraftArticle draftArticle,
@@ -184,7 +180,6 @@ public class ArticleController {
 
   @PutMapping("/{id:\\d+}")
   @Operation(summary = "Update the article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> updateArticle(@PathVariable Long id,
       @Valid @RequestBody UpdateArticle article, @AuthenticationPrincipal UserModel userModel) {
@@ -194,7 +189,6 @@ public class ArticleController {
 
   @PatchMapping("/{id:\\d+}/publish")
   @Operation(summary = "Publish the article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_AUTHOR')")
   public ResponseEntity<Void> publishArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -204,7 +198,6 @@ public class ArticleController {
 
   @PatchMapping("/{id:\\d+}/hide")
   @Operation(summary = "Hide the article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> hideArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -214,7 +207,6 @@ public class ArticleController {
 
   @PatchMapping("/{id:\\d+}/block")
   @Operation(summary = "Block the article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> blockArticle(@PathVariable Long id) {
     articleService.blockArticle(id);
@@ -223,7 +215,6 @@ public class ArticleController {
 
   @PatchMapping("/{id:\\d+}/unblock")
   @Operation(summary = "Unblock the article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> unblockArticle(@PathVariable Long id) {
     articleService.unblockArticle(id);
@@ -232,7 +223,6 @@ public class ArticleController {
 
   @DeleteMapping("/{id:\\d+}")
   @Operation(summary = "Delete the article")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> deleteArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -242,7 +232,6 @@ public class ArticleController {
 
   @PostMapping("/{id:\\d+}/add-to-compilations")
   @Operation(summary = "Add the article to the compilations")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<?> compilate(@PathVariable Long id,
       @Valid @RequestBody CompilationsDTO compilations,

@@ -14,6 +14,6 @@ public interface ArticleViewRepository extends JpaRepository<ArticleView, Long>,
     JpaSpecificationExecutor<ArticleView> {
 
   Optional<ArticleView> findByUserAndArticle(UserModel userModel, ArticleModel article);
-  
+
   List<ArticleView> findTop20ByUserOrderByUpdatedAtDesc(UserModel userModel);
 }

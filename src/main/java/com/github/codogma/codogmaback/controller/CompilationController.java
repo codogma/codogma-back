@@ -8,7 +8,6 @@ import com.github.codogma.codogmaback.service.CompilationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Parameters;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.util.List;
@@ -83,7 +82,6 @@ public class CompilationController {
 
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Create a new compilation")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<String> createCompilation(
       @Valid @ModelAttribute CreateCompilation createCompilation,
@@ -94,7 +92,6 @@ public class CompilationController {
 
   @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the compilation")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<String> updateCompilation(@PathVariable Long id,
       @Valid @ModelAttribute UpdateCompilation updateCompilation,
@@ -105,7 +102,6 @@ public class CompilationController {
 
   @DeleteMapping("/{id:\\d+}")
   @Operation(summary = "Delete the compilation")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<String> deleteCompilation(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -115,7 +111,6 @@ public class CompilationController {
 
   @PostMapping("/{id:\\d+}/bookmark")
   @Operation(summary = "Add the compilation to bookmarks")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetCompilation> bookmark(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
@@ -125,7 +120,6 @@ public class CompilationController {
 
   @DeleteMapping("/{id:\\d+}/unbookmark")
   @Operation(summary = "Delete the compilation from bookmarks")
-  @SecurityRequirement(name = "bearerAuth")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetCompilation> unbookmark(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {

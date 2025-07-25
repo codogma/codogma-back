@@ -2,12 +2,12 @@ package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.model.ConfirmationToken;
 import com.github.codogma.codogmaback.repository.ConfirmationTokenRepository;
-import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service

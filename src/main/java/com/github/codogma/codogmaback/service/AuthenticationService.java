@@ -1,69 +1,82 @@
 package com.github.codogma.codogmaback.service;
 
-import static com.github.codogma.codogmaback.util.TokenUtils.invalidateToken;
-import static com.github.codogma.codogmaback.util.TokenUtils.setAuthCookie;
-
-import com.github.codogma.codogmaback.dto.AuthenticationResponse;
+import com.github.codogma.codogmaback.dto.AuthDTO;
 import com.github.codogma.codogmaback.dto.GetUser;
 import com.github.codogma.codogmaback.dto.SignInRequest;
 import com.github.codogma.codogmaback.dto.SignUpRequest;
+import com.github.codogma.codogmaback.exception.DeviceMismatchException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
-import com.github.codogma.codogmaback.handler.oauth.OAuth2ProviderHandler;
+import com.github.codogma.codogmaback.exception.InvalidTokenException;
+import com.github.codogma.codogmaback.exception.RevokedTokenException;
+import com.github.codogma.codogmaback.exception.TokenExpiredException;
 import com.github.codogma.codogmaback.model.ConfirmationToken;
+import com.github.codogma.codogmaback.model.RefreshTokenModel;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.UserModel;
+import com.github.codogma.codogmaback.repository.RefreshTokenRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
+import com.github.codogma.codogmaback.security.JwtProvider;
+import com.github.codogma.codogmaback.util.CookieUtils;
 import com.github.codogma.codogmaback.util.FileUploadUtil;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.transaction.Transactional;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AuthenticationService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
+public class AuthenticationService {
 
-  private final UserRepository userRepository;
-  private final PasswordEncoder passwordEncoder;
+  @Value("${spring.security.jwt.device-claim-name}")
+  private String deviceClaimName;
+  @Value("${spring.security.jwt.refresh-expiration}")
+  private int refreshExpiration;
+
   private final AuthenticationManager authenticationManager;
-  private final JwtService jwtService;
-  private final FileUploadUtil fileUploadUtil;
-  private final List<OAuth2ProviderHandler> providerHandlers;
-  private final EmailService emailService;
   private final ConfirmationTokenService tokenService;
+  private final CookieUtils cookieUtils;
+  private final DeviceAwareService deviceAwareService;
+  private final EmailService emailService;
   private final ExceptionFactory exceptionFactory;
+  private final JwtProvider jwtProvider;
+  private final FileUploadUtil fileUploadUtil;
+  private final PasswordEncoder passwordEncoder;
+  private final RefreshTokenRepository refreshTokenRepository;
+  private final TokenRevocationService tokenRevocationService;
+  private final UserRepository userRepository;
+
+  private static final int MAX_SESSIONS_PER_USER = 5;
 
   @Transactional
-  public GetUser signUp(SignUpRequest signUpRequest, MultipartFile avatar, String origin) {
+  public GetUser signUp(SignUpRequest signUpRequest, MultipartFile avatar,
+      HttpServletRequest request) {
     userRepository.findByUsernameOrEmail(signUpRequest.getUsername(), signUpRequest.getEmail())
         .ifPresent(user -> {
           throw exceptionFactory.userAlreadyExists();
         });
-    UserModel user = UserModel.builder().username(signUpRequest.getUsername())
-        .email(signUpRequest.getEmail())
+    String origin = request.getHeader("Origin");
+    UserModel user = UserModel.builder().uuid(UUID.randomUUID())
+        .username(signUpRequest.getUsername()).email(signUpRequest.getEmail())
         .password(passwordEncoder.encode(signUpRequest.getPassword())).role(Role.ROLE_USER).build();
     Optional.ofNullable(avatar).filter(image -> !image.isEmpty())
         .map(fileUploadUtil::uploadCategoryImage).ifPresent(user::setAvatarUrl);
     userRepository.save(user);
-    String token = jwtService.generateToken(user);
+    String token = UUID.randomUUID().toString();
     ConfirmationToken confirmationToken = ConfirmationToken.builder().token(token).user(user)
         .createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusHours(24)).build();
     tokenService.saveConfirmationToken(confirmationToken);
@@ -89,7 +102,8 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
   }
 
   @Transactional
-  public AuthenticationResponse signIn(SignInRequest input, HttpServletResponse response) {
+  public AuthDTO signIn(SignInRequest input, HttpServletRequest request,
+      HttpServletResponse response) {
     log.info("Attempting to authenticate user: {}", input.getUsernameOrEmail());
     try {
       UserModel user = userRepository.findByUsernameOrEmail(input.getUsernameOrEmail(),
@@ -99,10 +113,32 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
       }
       authenticationManager.authenticate(
           new UsernamePasswordAuthenticationToken(input.getUsernameOrEmail(), input.getPassword()));
-      String jwtToken = jwtService.generateToken(user);
-      setAuthCookie(response, jwtToken);
-      return AuthenticationResponse.builder().token(jwtToken)
-          .expiresIn(jwtService.getExpirationTime()).build();
+
+      // Generate tokens
+      String deviceId = deviceAwareService.generateDeviceId(request);
+      String accessToken = jwtProvider.generateAccessToken(user, deviceId);
+      String refreshToken = jwtProvider.generateRefreshToken(user, deviceId);
+
+      // Store refresh token
+      RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder()
+          .tokenHash(jwtProvider.hashToken(refreshToken)).user(user).deviceId(deviceId)
+          .expiresAt(Instant.now().plusMillis(refreshExpiration)).revoked(false).build();
+      refreshTokenRepository.save(refreshTokenModel);
+
+      // Set cookies
+      cookieUtils.setAccessTokenToHttpOnlyCookie(response, accessToken);
+      cookieUtils.setRefreshTokenToHttpOnlyCookie(response, refreshToken);
+
+      // Enforce session limits
+      int activeSessions = refreshTokenRepository.countByUserId(user.getId());
+      if (activeSessions > MAX_SESSIONS_PER_USER) {
+        refreshTokenRepository.findFirstByUserIdOrderByCreatedAtAsc(user.getId())
+            .ifPresent(refreshTokenRepository::delete);
+      }
+
+      return AuthDTO.builder().id(user.getUuid()).name(user.getUsername()).email(user.getEmail())
+          .role(user.getRole()).image(user.getAvatarUrl())
+          .expires(Instant.now().plusMillis(refreshExpiration)).build();
     } catch (Exception e) {
       log.error("Authentication failed for user: {}", input.getUsernameOrEmail(), e);
       throw e;
@@ -110,41 +146,52 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
   }
 
   @Transactional
-  @Override
-  public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
-    String registrationId = userRequest.getClientRegistration().getRegistrationId();
-    OAuth2User oAuth2User = new DefaultOAuth2UserService().loadUser(userRequest);
-
-    OAuth2ProviderHandler handler = providerHandlers.stream()
-        .filter(h -> h.supports(registrationId)).findFirst()
-        .orElseThrow(() -> new OAuth2AuthenticationException("Unknown provider"));
-
-    UserModel user = handler.processOAuth2User(oAuth2User);
-    user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
-
-    UserModel existingUser = userRepository.findByEmail(user.getEmail()).orElseGet(() -> {
-      UserModel newUser = userRepository.save(user);
-      newUser.setUsername("username_" + newUser.getId());
-      return newUser;
-    });
-    existingUser.setEnabled(true);
-    existingUser.updateFrom(user);
-    userRepository.save(existingUser);
-
-    String jwtToken = jwtService.generateToken(existingUser);
-    HttpServletResponse response = ((ServletRequestAttributes) Objects.requireNonNull(
-        RequestContextHolder.getRequestAttributes())).getResponse();
-    if (response != null) {
-      setAuthCookie(response, jwtToken);
+  public void refreshToken(HttpServletRequest request, HttpServletResponse response) {
+    String refreshTokenStr = cookieUtils.extractRefreshToken(request);
+    if (refreshTokenStr == null) {
+      cookieUtils.invalidateAllTokens(response);
+      throw new InvalidTokenException("Refresh token not found");
     }
-    log.info("User {} authenticated with provider {}", existingUser.getUsername(), registrationId);
-    return oAuth2User;
-  }
 
-  public void refreshToken(HttpServletResponse response, UserModel userModel) {
-    if (userModel != null) {
-      String newToken = jwtService.generateToken(userModel);
-      setAuthCookie(response, newToken);
+    try {
+      Claims claims = jwtProvider.extractAllClaims(refreshTokenStr);
+      String jti = claims.getId();
+      if (tokenRevocationService.isTokenRevoked(jti)) {
+        throw new RevokedTokenException("Refresh token revoked");
+      }
+
+      String username = claims.getSubject();
+      UserModel user = userRepository.findByUsername(username)
+          .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+      String tokenDeviceId = claims.get(deviceClaimName, String.class);
+      String currentDeviceId = deviceAwareService.generateDeviceId(request);
+      if (!tokenDeviceId.equals(currentDeviceId)) {
+        throw new DeviceMismatchException("Device mismatch");
+      }
+
+      String newAccessToken = jwtProvider.generateAccessToken(user, currentDeviceId);
+      String newRefreshTokenStr = jwtProvider.generateRefreshToken(user, currentDeviceId);
+      String newRefreshTokenHash = jwtProvider.hashToken(newRefreshTokenStr);
+
+      refreshTokenRepository.findByUserUsernameAndDeviceId(
+          username, currentDeviceId).ifPresentOrElse(token -> {
+        token.setTokenHash(newRefreshTokenHash);
+        token.setExpiresAt(Instant.now().plusMillis(refreshExpiration));
+      }, () -> {
+        RefreshTokenModel newStoredToken = RefreshTokenModel.builder()
+            .tokenHash(newRefreshTokenHash)
+            .user(user).deviceId(currentDeviceId)
+            .expiresAt(Instant.now().plusMillis(refreshExpiration)).revoked(false).build();
+        refreshTokenRepository.save(newStoredToken);
+      });
+
+      cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
+      cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
+
+    } catch (ExpiredJwtException e) {
+      cookieUtils.invalidateAllTokens(response);
+      throw new TokenExpiredException("Refresh token expired");
     }
   }
 
@@ -152,10 +199,23 @@ public class AuthenticationService implements OAuth2UserService<OAuth2UserReques
     return Optional.ofNullable(userModel).map(this::convertUserModelToDto);
   }
 
-  public void logout(HttpServletResponse response, UserModel userModel) {
-    log.info("Attempting to logout user: {}", userModel.getUsername());
-    invalidateToken(response);
-    log.info("User logged out successfully: {}", userModel.getUsername());
+  @Transactional
+  public void logout(HttpServletRequest request, HttpServletResponse response) {
+    String refreshToken = cookieUtils.extractRefreshToken(request);
+    log.info("Revoking refresh token: {}", refreshToken);
+    String username = jwtProvider.extractUsername(refreshToken);
+    log.info("Attempting to logout user: {}", username);
+
+    if (refreshToken != null) {
+      Claims claims = jwtProvider.extractAllClaims(refreshToken);
+      String jti = claims.getId();
+      tokenRevocationService.revokeToken(jti);
+    }
+
+    cookieUtils.invalidateAllTokens(response);
+    String deviceId = deviceAwareService.generateDeviceId(request);
+    refreshTokenRepository.deleteByUserUsernameAndDeviceId(username, deviceId);
+    log.info("User logged out successfully: {}", username);
   }
 
   private GetUser convertUserModelToDto(UserModel userModel) {
