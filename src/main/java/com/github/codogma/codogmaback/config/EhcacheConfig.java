@@ -23,6 +23,7 @@ import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 
 @Configuration
@@ -35,7 +36,8 @@ public class EhcacheConfig {
   private int entries;
 
   @Bean
-  public JCacheCacheManager cacheManager() {
+  @Primary
+  public JCacheCacheManager jCacheManager() {
     // Конфигурация для статьи
     CacheConfiguration<Object, GetArticle> articleByIdConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
             Object.class, GetArticle.class,

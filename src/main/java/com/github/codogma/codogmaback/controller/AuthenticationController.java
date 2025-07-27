@@ -71,7 +71,7 @@ public class AuthenticationController {
   }
 
   @PostMapping("/refresh-token")
-  @Operation(summary = "Refresh the HttpOnly cookie 'auth-token'")
+  @Operation(summary = "Refresh the HttpOnly cookie 'refresh_token'")
   public ResponseEntity<Void> refreshToken(HttpServletRequest request,
       HttpServletResponse response) {
     authenticationService.refreshToken(request, response);
