@@ -2,6 +2,7 @@ package com.github.codogma.codogmaback.repository;
 
 import com.github.codogma.codogmaback.model.RefreshTokenModel;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,7 +13,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenModel,
 
   Optional<RefreshTokenModel> findByTokenHash(String tokenHash);
 
-  Optional<RefreshTokenModel> findByUserUsernameAndDeviceId(String username, String deviceId);
+  List<RefreshTokenModel> findAllByUserUsernameAndDeviceId(String username, String deviceId);
 
   boolean existsByTokenHash(String tokenHash);
 

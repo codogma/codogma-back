@@ -24,6 +24,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
@@ -118,7 +119,7 @@ public class AuthenticationService {
       String deviceId = deviceAwareService.generateDeviceId(request);
       String accessToken = jwtProvider.generateAccessToken(user, deviceId);
       String refreshToken = jwtProvider.generateRefreshToken(user, deviceId);
-
+      refreshTokenRepository.deleteByUserUsernameAndDeviceId(user.getUsername(), deviceId);
       // Store refresh token
       RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder()
           .tokenHash(jwtProvider.hashToken(refreshToken)).user(user).deviceId(deviceId)
@@ -174,17 +175,31 @@ public class AuthenticationService {
       String newRefreshTokenStr = jwtProvider.generateRefreshToken(user, currentDeviceId);
       String newRefreshTokenHash = jwtProvider.hashToken(newRefreshTokenStr);
 
-      refreshTokenRepository.findByUserUsernameAndDeviceId(
-          username, currentDeviceId).ifPresentOrElse(token -> {
-        token.setTokenHash(newRefreshTokenHash);
-        token.setExpiresAt(Instant.now().plusMillis(refreshExpiration));
-      }, () -> {
-        RefreshTokenModel newStoredToken = RefreshTokenModel.builder()
-            .tokenHash(newRefreshTokenHash)
-            .user(user).deviceId(currentDeviceId)
-            .expiresAt(Instant.now().plusMillis(refreshExpiration)).revoked(false).build();
-        refreshTokenRepository.save(newStoredToken);
-      });
+      List<RefreshTokenModel> existingTokens = refreshTokenRepository.findAllByUserUsernameAndDeviceId(
+          username, currentDeviceId);
+
+      if (!existingTokens.isEmpty()) {
+        if (existingTokens.size() > 1) {
+          log.warn("Found {} duplicate refresh tokens for user {} and device {}. Cleaning up.",
+              existingTokens.size(), username, currentDeviceId);
+          refreshTokenRepository.deleteAll(existingTokens);
+        } else {
+          RefreshTokenModel existingToken = existingTokens.getFirst();
+          existingToken.setTokenHash(newRefreshTokenHash);
+          existingToken.setExpiresAt(Instant.now().plusMillis(refreshExpiration));
+          existingToken.setRevoked(false);
+          refreshTokenRepository.save(existingToken);
+
+          cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
+          cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
+          return;
+        }
+      }
+
+      RefreshTokenModel newStoredToken = RefreshTokenModel.builder().tokenHash(newRefreshTokenHash)
+          .user(user).deviceId(currentDeviceId)
+          .expiresAt(Instant.now().plusMillis(refreshExpiration)).revoked(false).build();
+      refreshTokenRepository.save(newStoredToken);
 
       cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
