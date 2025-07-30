@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,6 +50,7 @@ public class CompilationModel {
   private String description;
   @Column(name = "image_url")
   private String imageUrl;
+  @Default
   @OneToMany(mappedBy = "compilation", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("position ASC")
   @Exclude
@@ -57,6 +59,7 @@ public class CompilationModel {
   @JoinColumn(name = "user_id", nullable = false)
   @Exclude
   private UserModel user;
+  @Default
   @OneToMany(mappedBy = "compilation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
   @Exclude
   private List<BookmarkModel> bookmarks = new ArrayList<>();

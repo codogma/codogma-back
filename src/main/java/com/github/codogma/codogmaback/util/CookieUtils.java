@@ -101,8 +101,7 @@ public class CookieUtils {
       String domain) {
     boolean isProduction = activeProfile.contains("prod");
     return ResponseCookie.from(name, token).httpOnly(true).secure(isProduction).path("/")
-        .maxAge(maxAge).sameSite(isProduction ? "None" : sameSite)
-        .domain(isProduction ? domain : null).build();
+        .maxAge(maxAge).sameSite(sameSite).domain(isProduction ? domain : null).build();
   }
 
   public void invalidateAllTokens(HttpServletResponse response) {

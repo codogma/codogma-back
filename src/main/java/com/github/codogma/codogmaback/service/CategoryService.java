@@ -104,9 +104,10 @@ public class CategoryService {
 
   @Transactional
   @Cacheable(value = "categoryById", key = "{#categoryId, #userModel?.id, @localizationContext.language.code}")
-  public Optional<GetCategory> getCategoryById(Long categoryId, UserModel userModel) {
-    return categoryRepository.findById(categoryId)
-        .map(categoryModel -> convertCategoryToDTO(categoryModel, userModel));
+  public GetCategory getCategoryById(Long categoryId, UserModel userModel) {
+    CategoryModel categoryModel = categoryRepository.findById(categoryId)
+        .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
+    return convertCategoryToDTO(categoryModel, userModel);
   }
 
   @Transactional
@@ -155,8 +156,8 @@ public class CategoryService {
               .isFull(true).imageUrl(urlPath).palette(palette).build();
           category.getImages().add(categoryImage);
         });
-    categoryRepository.save(category);
-    return convertCategoryToDTO(category, userModel);
+    CategoryModel savedCategory = categoryRepository.save(category);
+    return convertCategoryToDTO(savedCategory, userModel);
   }
 
   @Transactional
