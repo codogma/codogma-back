@@ -34,9 +34,6 @@ public class DeviceAwareService {
     String currentDeviceId = generateDeviceId(request);
     String tokenDeviceId = claims.get(deviceClaimName, String.class);
     String username = claims.getSubject();
-    log.warn(tokenDeviceId);
-    log.warn(currentDeviceId);
-    log.warn(username);
 
     if (!MessageDigest.isEqual(currentDeviceId.getBytes(StandardCharsets.UTF_8),
         tokenDeviceId.getBytes(StandardCharsets.UTF_8))) {

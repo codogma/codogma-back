@@ -101,19 +101,21 @@ public class CompilationService {
 
   @Transactional
   @CacheEvict(cacheNames = {"compilations", "compilationsByTitle"}, allEntries = true)
-  public void createCompilation(CreateCompilation createCompilation, UserModel userModel) {
+  public GetCompilation createCompilation(CreateCompilation createCompilation,
+      UserModel userModel) {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
     Optional.ofNullable(createCompilation.getImage()).filter(image -> !image.isEmpty())
         .map(fileUploadUtil::uploadCompilationImage).ifPresent(compilation::setImageUrl);
-    compilationRepository.save(compilation);
+    CompilationModel savedCompilation = compilationRepository.save(compilation);
+    return convertCompilationToDTO(savedCompilation, userModel);
   }
 
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "compilations",
       "compilationsByTitle"}, allEntries = true),
       @CacheEvict(value = "compilationById", key = "{#compilationId, #userModel.id}")})
-  public void updateCompilation(Long compilationId, UpdateCompilation updateCompilation,
+  public GetCompilation updateCompilation(Long compilationId, UpdateCompilation updateCompilation,
       UserModel userModel) {
     CompilationModel compilation = compilationRepository.findById(compilationId)
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
@@ -161,6 +163,7 @@ public class CompilationService {
     Optional.ofNullable(updateCompilation.getImage()).filter(image -> !image.isEmpty())
         .map(fileUploadUtil::uploadCompilationImage).ifPresent(compilation::setImageUrl);
     compilationRepository.save(compilation);
+    return convertCompilationToDTO(compilation, userModel);
   }
 
   @Transactional
@@ -220,8 +223,8 @@ public class CompilationService {
           GetImageWithPalette image = articleImage == null ? null
               : GetImageWithPalette.builder().imageUrl(articleImage.getImageUrl())
                   .filename(articleImage.getFilename()).build();
-          return GetArticle.builder().id(article.getId()).title(article.getTitle())
-              .image(image).build();
+          return GetArticle.builder().id(article.getId()).title(article.getTitle()).image(image)
+              .build();
         }).toList();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)
         .bookmarksCount(compilation.getBookmarks().size()).title(compilation.getTitle())

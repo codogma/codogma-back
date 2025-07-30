@@ -72,9 +72,8 @@ public class CategoryController {
   @Operation(summary = "Get the category by id")
   public ResponseEntity<GetCategory> getCategoryById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    return categoryService.getCategoryById(id, userModel)
-        .map(category -> new ResponseEntity<>(category, HttpStatus.OK))
-        .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    GetCategory categoryById = categoryService.getCategoryById(id, userModel);
+    return ResponseEntity.ok(categoryById);
   }
 
   @GetMapping("/{id:\\d+}/to-update")

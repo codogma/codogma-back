@@ -57,8 +57,7 @@ public class CompilationController {
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
     Page<GetCompilation> compilations = compilationService.getCompilations(tag, content, username,
-        isBookmarked,
-        page, size, sort, order, userModel);
+        isBookmarked, page, size, sort, order, userModel);
     return ResponseEntity.ok(compilations);
   }
 
@@ -83,21 +82,23 @@ public class CompilationController {
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Create a new compilation")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<String> createCompilation(
+  public ResponseEntity<GetCompilation> createCompilation(
       @Valid @ModelAttribute CreateCompilation createCompilation,
       @AuthenticationPrincipal UserModel userModel) {
-    compilationService.createCompilation(createCompilation, userModel);
-    return ResponseEntity.ok("Compilation created successfully");
+    GetCompilation createdCompilation = compilationService.createCompilation(createCompilation,
+        userModel);
+    return new ResponseEntity<>(createdCompilation, HttpStatus.CREATED);
   }
 
   @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the compilation")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<String> updateCompilation(@PathVariable Long id,
+  public ResponseEntity<GetCompilation> updateCompilation(@PathVariable Long id,
       @Valid @ModelAttribute UpdateCompilation updateCompilation,
       @AuthenticationPrincipal UserModel userModel) {
-    compilationService.updateCompilation(id, updateCompilation, userModel);
-    return ResponseEntity.ok("Compilation updated successfully");
+    GetCompilation updatedCompilation = compilationService.updateCompilation(id, updateCompilation,
+        userModel);
+    return ResponseEntity.ok(updatedCompilation);
   }
 
   @DeleteMapping("/{id:\\d+}")

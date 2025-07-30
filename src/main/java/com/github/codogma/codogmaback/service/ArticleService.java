@@ -168,6 +168,7 @@ public class ArticleService {
   @Transactional
   @Cacheable(value = "articleById", key = "{#articleId, #userModel?.id, @localizationContext.language.code}")
   public GetArticle getArticleById(Long articleId, UserModel userModel) {
+    log.warn(userModel.getUsername());
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     Status articleStatus = articleModel.getStatus();

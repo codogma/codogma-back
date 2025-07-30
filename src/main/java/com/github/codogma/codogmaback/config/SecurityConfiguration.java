@@ -72,8 +72,7 @@ public class SecurityConfiguration {
   public CorsConfigurationSource corsConfigurationSource() {
     var corsConfiguration = new CorsConfiguration();
     List<String> allowedOriginPatterns = corsProperties.getAllowedOriginPatterns();
-    //TODO надо будет allowedOriginPatterns прописать в конфиге потом
-    corsConfiguration.setAllowedOriginPatterns(List.of("*"));
+    corsConfiguration.setAllowedOriginPatterns(allowedOriginPatterns);
     corsConfiguration.setAllowedMethods(List.of("*"));
     corsConfiguration.setAllowedHeaders(List.of("*"));
     corsConfiguration.addExposedHeader("Content-Disposition");
