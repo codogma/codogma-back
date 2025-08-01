@@ -75,7 +75,7 @@ public class AuthenticationController {
   public ResponseEntity<Void> refreshToken(HttpServletRequest request,
       HttpServletResponse response) {
     authenticationService.refreshToken(request, response);
-    return ResponseEntity.noContent().build();
+    return ResponseEntity.ok().build();
   }
 
   @PostMapping("/logout")

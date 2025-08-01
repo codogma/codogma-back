@@ -168,7 +168,6 @@ public class ArticleService {
   @Transactional
   @Cacheable(value = "articleById", key = "{#articleId, #userModel?.id, @localizationContext.language.code}")
   public GetArticle getArticleById(Long articleId, UserModel userModel) {
-    log.warn(userModel.getUsername());
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     Status articleStatus = articleModel.getStatus();
@@ -698,10 +697,9 @@ public class ArticleService {
     SwatchDTO darkMuted = palette == null ? null : buildSwatchDTO(palette.getDarkMuted());
     SwatchDTO lightVibrant = palette == null ? null : buildSwatchDTO(palette.getLightVibrant());
     SwatchDTO lightMuted = palette == null ? null : buildSwatchDTO(palette.getLightMuted());
-    PaletteDTO paletteDTO =
-        palette == null ? null : PaletteDTO.builder().vibrant(vibrant).muted(muted)
-            .darkVibrant(darkVibrant).darkMuted(darkMuted).lightVibrant(lightVibrant)
-            .lightMuted(lightMuted).build();
+    PaletteDTO paletteDTO = palette == null ? null
+        : PaletteDTO.builder().vibrant(vibrant).muted(muted).darkVibrant(darkVibrant)
+            .darkMuted(darkMuted).lightVibrant(lightVibrant).lightMuted(lightMuted).build();
     GetImageWithPalette image = articleImage == null ? null
         : GetImageWithPalette.builder().imageUrl(articleImage.getImageUrl())
             .filename(articleImage.getFilename()).palette(paletteDTO).build();

@@ -1,0 +1,14 @@
+cors:
+  allowed-origin-patterns:
+    - "https://*.${DOMAIN_NAME}"
+    - "https://${DOMAIN_NAME}"
+
+logging:
+  level:
+    root: WARN
+    org:
+      springframework:
+        security: WARN
+        web: WARN
+        cache: WARN
+      ehcache: WARN

@@ -17,14 +17,25 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
+import com.github.codogma.codogmaback.service.DeviceAwareService;
+import com.github.codogma.codogmaback.service.TokenRevocationService;
+import io.jsonwebtoken.Claims;
+
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
+  @org.springframework.beans.factory.annotation.Value("${spring.security.jwt.device-claim-name}")
+  private String deviceClaimName;
+
   private final JwtProvider jwtProvider;
   private final CookieUtils cookieUtils;
   private final UserDetailsService userDetailsService;
+  private final TokenRevocationService tokenRevocationService;
+  private final DeviceAwareService deviceAwareService;
+
 
   @Override
   public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -61,6 +72,22 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
       if (!jwtProvider.isTokenValid(token)) {
         log.error("Invalid authentication token for destination: {}", destination);
         throw new BadCredentialsException("Invalid authentication token");
+      }
+
+      Claims claims = jwtProvider.extractAllClaims(token);
+
+      String jti = claims.getId();
+      if (tokenRevocationService.isTokenRevoked(jti)) {
+        log.error("Revoked authentication token for destination: {}", destination);
+        throw new BadCredentialsException("Revoked authentication token");
+      }
+
+      String tokenDeviceId = claims.get(deviceClaimName, String.class);
+      String currentDeviceId = deviceAwareService.generateDeviceId(accessor);
+
+      if (!tokenDeviceId.equals(currentDeviceId)) {
+        log.error("Device binding mismatch for destination: {}", destination);
+        throw new BadCredentialsException("Device binding mismatch");
       }
 
       UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
