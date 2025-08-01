@@ -104,22 +104,6 @@ server:
 
 cors:
   max-age: 3600
-  allowed-origin-patterns:
-    - "https://*.${DOMAIN_NAME}"
-    - "https://${DOMAIN_NAME}"
-    - "http://*.${DOMAIN_NAME}"
-    - "http://${DOMAIN_NAME}"
-    - "http://localhost:3000"   # Явное разрешение для локальной разработки
-
-logging:
-  level:
-    root: INFO
-    org:
-      springframework:
-        security: DEBUG
-        web: DEBUG
-        cache: DEBUG
-      ehcache: DEBUG
 
 management:
   endpoints:

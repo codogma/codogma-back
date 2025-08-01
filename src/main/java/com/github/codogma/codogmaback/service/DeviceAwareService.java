@@ -4,6 +4,7 @@ import com.github.codogma.codogmaback.exception.DeviceMismatchException;
 import com.github.codogma.codogmaback.repository.RefreshTokenRepository;
 import com.github.codogma.codogmaback.util.CookieUtils;
 import io.jsonwebtoken.Claims;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +58,18 @@ public class DeviceAwareService {
     String normalizedTimeZone = timeZone != null ? timeZone : "";
 
     // Генерация хеша
+    String compositeString = normalizedUserAgent + normalizedTimeZone + deviceSalt;
+
+    return Sha512DigestUtils.shaHex(compositeString);
+  }
+
+  public String generateDeviceId(StompHeaderAccessor accessor) {
+    String userAgent = accessor.getFirstNativeHeader("User-Agent");
+    String timeZone = accessor.getFirstNativeHeader("Time-Zone");
+
+    String normalizedUserAgent = userAgent != null ? userAgent : "";
+    String normalizedTimeZone = timeZone != null ? timeZone : "";
+
     String compositeString = normalizedUserAgent + normalizedTimeZone + deviceSalt;
 
     return Sha512DigestUtils.shaHex(compositeString);

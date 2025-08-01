@@ -1,0 +1,14 @@
+cors:
+  allowed-origin-patterns:
+    - "http://*.${DOMAIN_NAME}"
+    - "http://${DOMAIN_NAME}"
+
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        security: DEBUG
+        web: DEBUG
+        cache: DEBUG
+      ehcache: DEBUG

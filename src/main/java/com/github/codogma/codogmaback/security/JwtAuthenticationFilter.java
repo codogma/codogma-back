@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -38,6 +39,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final UserDetailsService userDetailsService;
   private final TokenRevocationService tokenRevocationService;
 
+  @Value("${spring.profiles.active:dev}")
+  private String activeProfile;
+
   private static final List<String> PUBLIC_PATHS = Arrays.asList("/swagger-ui", "/v3/api-docs",
       "/auth", "/ws", "/error", "/swagger-resources");
 
@@ -54,10 +58,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     try {
       final String accessToken = cookieUtils.extractAccessToken(request);
       final String refreshToken = cookieUtils.extractRefreshToken(request);
-      log.warn("Access token: {}, refresh token: {}", accessToken, refreshToken);
-      if (accessToken != null && jwtProvider.isTokenValid(accessToken))
-//          || refreshToken != null && jwtProvider.isTokenValid(refreshToken))
-      {
+      boolean isProduction = activeProfile.contains("prod");
+      if (!isProduction) {
+        log.warn("Access token: {}, refresh token: {}", accessToken, refreshToken);
+      }
+      if (accessToken != null && jwtProvider.isTokenValid(accessToken)) {
         Claims claims = jwtProvider.extractAllClaims(accessToken);
 
         // Check if token has been revoked
