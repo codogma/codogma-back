@@ -202,6 +202,12 @@ public class GlobalExceptionHandler {
         .header("X-Security-Event", "invalid_refresh_token").body(ex.getMessage());
   }
 
+  @ExceptionHandler(RevokedTokenException.class)
+  public ResponseEntity<String> handleRevokedTokenException(RevokedTokenException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "refresh_token_revoked").body(ex.getMessage());
+  }
+
   @ExceptionHandler(FileStorageException.class)
   public ResponseEntity<String> handleFileStorageException(FileStorageException ex) {
     return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);

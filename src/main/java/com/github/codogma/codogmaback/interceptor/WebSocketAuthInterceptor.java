@@ -1,7 +1,10 @@
 package com.github.codogma.codogmaback.interceptor;
 
 import com.github.codogma.codogmaback.security.JwtProvider;
+import com.github.codogma.codogmaback.service.DeviceAwareService;
+import com.github.codogma.codogmaback.service.TokenRevocationService;
 import com.github.codogma.codogmaback.util.CookieUtils;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.lang.NonNull;
@@ -16,10 +19,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
-
-import com.github.codogma.codogmaback.service.DeviceAwareService;
-import com.github.codogma.codogmaback.service.TokenRevocationService;
-import io.jsonwebtoken.Claims;
 
 
 @Slf4j

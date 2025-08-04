@@ -27,9 +27,9 @@ public @interface MultiLanguageField {
       implements PropertyMappingAnnotationProcessor<MultiLanguageField> {
 
     @Override
-    public void process(PropertyMappingStep mapping, MultiLanguageField annotation,
-        PropertyMappingAnnotationProcessorContext context) {
-      LanguageAlternativeBinderDelegate delegate = new LanguageAlternativeBinderDelegate(
+    public void process(final PropertyMappingStep mapping, final MultiLanguageField annotation,
+        final PropertyMappingAnnotationProcessorContext context) {
+      final LanguageAlternativeBinderDelegate delegate = new LanguageAlternativeBinderDelegate(
           annotation.name().isEmpty() ? null : annotation.name()
       );
       mapping.hostingType()

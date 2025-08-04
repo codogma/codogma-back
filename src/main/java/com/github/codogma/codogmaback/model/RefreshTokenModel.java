@@ -42,11 +42,9 @@ public class RefreshTokenModel {
   @Column(nullable = false)
   private Instant expiresAt;
   @Column(nullable = false)
-  private boolean revoked = false;
+  private boolean revoked;
   @CreationTimestamp
   private Instant createdAt;
   @UpdateTimestamp
   private Instant updatedAt;
 }
-
-

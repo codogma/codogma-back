@@ -16,17 +16,15 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.engine.backend.types.Sortable;
@@ -53,7 +51,7 @@ public class ArticleModel {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
   @FullTextField
-  @Default
+  @Builder.Default
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   private Status status = Status.DRAFT;
@@ -69,8 +67,8 @@ public class ArticleModel {
   @MultiLanguageField
   @Column(nullable = false)
   private String title;
-  @Default
-  @Exclude
+  @Builder.Default
+  @ToString.Exclude
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ArticleImageModel> images = new ArrayList<>();
   @FullTextField
@@ -80,41 +78,41 @@ public class ArticleModel {
   @MultiLanguageField
   @Column(columnDefinition = "TEXT")
   private String content;
-  @Exclude
+  @ToString.Exclude
   @IndexedEmbedded
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   private UserModel user;
-  @Exclude
-  @Default
-  @IndexedEmbedded(includePaths = {"id"})
+  @ToString.Exclude
+  @Builder.Default
+  @IndexedEmbedded(includePaths = "id")
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_categories", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "category_id"))
   private List<CategoryModel> categories = new ArrayList<>();
-  @Exclude
-  @Default
+  @ToString.Exclude
+  @Builder.Default
   @IndexedEmbedded
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CompilationArticle> compilationArticles = new ArrayList<>();
-  @Exclude
-  @Default
+  @ToString.Exclude
+  @Builder.Default
   @IndexedEmbedded(includePaths = {"id", "name"})
   @ManyToMany(fetch = FetchType.LAZY)
   @JoinTable(name = "article_tags", joinColumns = @JoinColumn(name = "article_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
   private List<TagModel> tags = new ArrayList<>();
-  @Exclude
+  @ToString.Exclude
   @OrderBy("createdAt ASC")
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CommentModel> comments = new ArrayList<>();
-  @Exclude
+  @ToString.Exclude
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<ArticleView> views = new ArrayList<>();
   @CreationTimestamp
   @GenericField(sortable = Sortable.YES)
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   @GenericField(sortable = Sortable.YES)
   @UpdateTimestamp
   @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

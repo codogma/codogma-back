@@ -48,7 +48,8 @@ import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpeci
 import com.github.codogma.codogmaback.util.KeywordExtractor;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -219,7 +220,7 @@ public class ArticleService {
     if (userModel != null) {
       ArticleView existingView = articleViewRepository.findByUserAndArticle(userModel, articleModel)
           .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
-      existingView.setUpdatedAt(LocalDateTime.now());
+      existingView.setUpdatedAt(Instant.now());
       articleViewRepository.save(existingView);
     }
   }
@@ -242,7 +243,7 @@ public class ArticleService {
           BooleanPredicateClausesStep<?> bool = f.bool()
               .must(f.match().field("status").matching(Status.PUBLISHED))
               .mustNot(f.match().field("id").matching(articleId))
-              .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
+              .must(f.range().field("createdAt").atLeast(Instant.now().minus(6, ChronoUnit.MONTHS)))
               .should(f.simpleQueryString().fields("title", "tags.name").matching(combinedKeywords)
                   .defaultOperator(BooleanOperator.OR).boost(1.0f))
               .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(10.0f))

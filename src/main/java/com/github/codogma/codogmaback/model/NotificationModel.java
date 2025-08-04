@@ -13,7 +13,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.MapKeyColumn;
 import jakarta.persistence.MapKeyEnumerated;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.AllArgsConstructor;
@@ -59,8 +59,8 @@ public class NotificationModel {
   private NotificationType type;
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   @UpdateTimestamp
   @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

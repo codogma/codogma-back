@@ -16,14 +16,14 @@ public class LanguageAlternativeBinderDelegate implements
   private final String name;
 
   @Override
-  public AlternativeValueBridge<Language, String> bind(IndexSchemaElement indexSchemaElement,
-      PojoModelProperty fieldValueSource) {
-    EnumMap<Language, IndexFieldReference<String>> fields = new EnumMap<>(Language.class);
-    String fieldNamePrefix = (name != null ? name : fieldValueSource.name()) + "_";
+  public AlternativeValueBridge<Language, String> bind(final IndexSchemaElement indexSchemaElement,
+      final PojoModelProperty fieldValueSource) {
+    final EnumMap<Language, IndexFieldReference<String>> fields = new EnumMap<>(Language.class);
+    final String fieldNamePrefix = (null != name ? this.name : fieldValueSource.name()) + "_";
 
-    for (Language language : Language.values()) {
-      String languageCode = Language.fromCode(language.getCode()).getCode();
-      IndexFieldReference<String> field = indexSchemaElement.field(fieldNamePrefix + languageCode,
+    for (final Language language : Language.values()) {
+      final String languageCode = Language.fromCode(language.getCode()).getCode();
+      final IndexFieldReference<String> field = indexSchemaElement.field(fieldNamePrefix + languageCode,
           f -> f.asString().analyzer(languageCode)).toReference();
       fields.put(language, field);
     }
@@ -35,11 +35,11 @@ public class LanguageAlternativeBinderDelegate implements
       AlternativeValueBridge<Language, String> {
 
     @Override
-    public void write(DocumentElement target, Language discriminator, String bridgedElement) {
-      if (discriminator == null) {
+    public void write(final DocumentElement target, Language discriminator, final String bridgedElement) {
+      if (null == discriminator) {
         discriminator = Language.EN;
       }
-      target.addValue(fields.get(discriminator), bridgedElement);
+      target.addValue(this.fields.get(discriminator), bridgedElement);
     }
   }
 }

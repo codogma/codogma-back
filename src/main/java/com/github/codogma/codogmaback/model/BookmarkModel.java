@@ -9,14 +9,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Getter
@@ -35,13 +34,13 @@ public class BookmarkModel {
   private Long id;
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
-  @Exclude
+  @ToString.Exclude
   private UserModel user;
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "compilation_id", nullable = false)
-  @Exclude
+  @ToString.Exclude
   private CompilationModel compilation;
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 }

@@ -13,7 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
@@ -22,7 +22,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Getter
@@ -46,21 +45,21 @@ public class CommentModel {
   private String content;
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
-  @Exclude
+  @ToString.Exclude
   private UserModel user;
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "article_id", nullable = false)
-  @Exclude
+  @ToString.Exclude
   private ArticleModel article;
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "parent_comment_id")
-  @Exclude
+  @ToString.Exclude
   private CommentModel parentComment;
   @OneToMany(mappedBy = "parentComment", orphanRemoval = true)
   @OrderBy("createdAt ASC")
-  @Exclude
+  @ToString.Exclude
   private List<CommentModel> replies = new ArrayList<>();
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 }

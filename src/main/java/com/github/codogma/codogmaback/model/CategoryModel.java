@@ -17,19 +17,17 @@ import jakarta.persistence.MapKeyEnumerated;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.engine.backend.types.Sortable;
@@ -57,8 +55,8 @@ public class CategoryModel {
   @MapKeyColumn(name = "language")
   @MapKeyEnumerated(EnumType.STRING)
   @FullTextField(name = "name", analyzer = "standard")
-  @CollectionTable(name = "category_localized_names", joinColumns = @JoinColumn(name = "category_id"), uniqueConstraints = {
-      @UniqueConstraint(columnNames = {"name", "language"})})
+  @CollectionTable(name = "category_localized_names", joinColumns = @JoinColumn(name = "category_id"), uniqueConstraints = @UniqueConstraint(columnNames = {
+      "name", "language"}))
   @Column(nullable = false)
   private Map<Language, String> name = new HashMap<>();
   @FullTextField
@@ -67,24 +65,24 @@ public class CategoryModel {
   @MapKeyEnumerated(EnumType.STRING)
   @CollectionTable(name = "category_localized_descriptions", joinColumns = @JoinColumn(name = "category_id"))
   private Map<Language, String> description = new HashMap<>();
-  @Default
-  @Exclude
+  @Builder.Default
+  @ToString.Exclude
   @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<CategoryImageModel> images = new ArrayList<>();
-  @Default
-  @Exclude
+  @Builder.Default
+  @ToString.Exclude
   @ManyToMany(fetch = FetchType.LAZY, mappedBy = "categories")
   private List<ArticleModel> articles = new ArrayList<>();
-  @Default
-  @Exclude
+  @Builder.Default
+  @ToString.Exclude
   @OneToMany(mappedBy = "category", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
   private List<FavoriteModel> favorites = new ArrayList<>();
   @CreationTimestamp
   @GenericField(sortable = Sortable.YES)
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   @UpdateTimestamp
   @Column(name = "updated_at")
   @GenericField(sortable = Sortable.YES)
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

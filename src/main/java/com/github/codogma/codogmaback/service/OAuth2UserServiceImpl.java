@@ -32,8 +32,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
+  @Value("${spring.security.jwt.access-expiration}")
+  private long accessExpiration;
   @Value("${spring.security.jwt.refresh-expiration}")
-  private int refreshExpiration;
+  private long refreshExpiration;
 
   private final CookieUtils cookieUtils;
   private final DeviceAwareService deviceAwareService;
@@ -59,8 +61,9 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
 
     UserModel existingUser = userRepository.findByEmail(user.getEmail()).orElseGet(() -> {
+      user.setUuid(UUID.randomUUID());
       UserModel newUser = userRepository.save(user);
-      newUser.setUsername("username_" + newUser.getId());
+      newUser.setUsername("username_" + newUser.getUuid());
       return newUser;
     });
     existingUser.setEnabled(true);
@@ -73,10 +76,13 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     String accessToken = jwtProvider.generateAccessToken(existingUser, deviceId);
     String refreshToken = jwtProvider.generateRefreshToken(existingUser, deviceId);
 
+    // Set tokens expiration
+    Instant refreshTokenExpiry = Instant.now().plusSeconds(refreshExpiration);
+
     // Store refresh token
     RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder()
         .tokenHash(jwtProvider.hashToken(refreshToken)).user(existingUser)
-        .deviceId("oauth2-" + registrationId).expiresAt(Instant.now().plusMillis(refreshExpiration))
+        .deviceId("oauth2-" + registrationId).expiresAt(refreshTokenExpiry)
         .revoked(false).build();
     refreshTokenRepository.save(refreshTokenModel);
 

@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -22,8 +22,8 @@ import org.hibernate.annotations.CreationTimestamp;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "article_likes", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"article_id", "user_id"})})
+@Table(name = "article_likes", uniqueConstraints = @UniqueConstraint(columnNames = {"article_id",
+    "user_id"}))
 public class LikeModel {
 
   @Id
@@ -38,5 +38,5 @@ public class LikeModel {
   private UserModel user;
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
 }

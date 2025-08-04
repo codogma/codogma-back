@@ -12,17 +12,15 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.ToString.Exclude;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
@@ -50,23 +48,23 @@ public class CompilationModel {
   private String description;
   @Column(name = "image_url")
   private String imageUrl;
-  @Default
+  @Builder.Default
   @OneToMany(mappedBy = "compilation", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("position ASC")
-  @Exclude
+  @ToString.Exclude
   private List<CompilationArticle> compilationArticles = new ArrayList<>();
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
-  @Exclude
+  @ToString.Exclude
   private UserModel user;
-  @Default
+  @Builder.Default
   @OneToMany(mappedBy = "compilation", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-  @Exclude
+  @ToString.Exclude
   private List<BookmarkModel> bookmarks = new ArrayList<>();
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   @UpdateTimestamp
   @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

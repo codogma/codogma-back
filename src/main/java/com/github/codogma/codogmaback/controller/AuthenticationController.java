@@ -1,10 +1,8 @@
 package com.github.codogma.codogmaback.controller;
 
 import com.github.codogma.codogmaback.dto.AuthDTO;
-import com.github.codogma.codogmaback.dto.GetUser;
 import com.github.codogma.codogmaback.dto.SignInRequest;
 import com.github.codogma.codogmaback.dto.SignUpRequest;
-import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -16,7 +14,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -38,7 +35,7 @@ public class AuthenticationController {
 
   private final AuthenticationService authenticationService;
 
-  //TODO: исправить регистрацию на Swagger
+  // TODO: исправить регистрацию на Swagger
   @PostMapping(value = "/sign-up", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Register a new user")
   public ResponseEntity<String> signUp(@Valid @ModelAttribute SignUpRequest signUpRequest,
@@ -65,9 +62,10 @@ public class AuthenticationController {
 
   @GetMapping("/current-user")
   @Operation(summary = "Get the current authenticated user")
-  public ResponseEntity<GetUser> currentUser(@AuthenticationPrincipal UserModel userModel) {
-    return authenticationService.currentUser(userModel).map(ResponseEntity::ok)
-        .orElseGet(() -> ResponseEntity.noContent().build());
+  public ResponseEntity<AuthDTO> currentUser(HttpServletRequest request,
+      HttpServletResponse response) {
+    AuthDTO dto = authenticationService.currentUser(request, response);
+    return ResponseEntity.ok(dto);
   }
 
   @PostMapping("/refresh-token")

@@ -33,4 +33,3 @@ public class RedirectUriFilter extends GenericFilterBean {
     chain.doFilter(request, response);
   }
 }
-
