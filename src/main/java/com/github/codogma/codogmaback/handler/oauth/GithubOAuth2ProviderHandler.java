@@ -19,6 +19,8 @@ public class GithubOAuth2ProviderHandler implements OAuth2ProviderHandler {
     final String username = oAuth2User.getAttribute("login");
     final String email = oAuth2User.getAttribute("email");
 
+    // TODO: реализовать обработку загрузки аватара
+
     return UserModel.builder().githubId(githubId).username(username).email(email)
         .role(Role.ROLE_USER).build();
   }

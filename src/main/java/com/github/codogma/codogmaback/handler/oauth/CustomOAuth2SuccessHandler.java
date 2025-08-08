@@ -21,20 +21,20 @@ public class CustomOAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHa
 
     if (redirectUrl == null) {
       response.setStatus(HttpServletResponse.SC_OK);
-      response.getWriter().write("Authentication successful");
+      response.getWriter().write("OAuth2 authentication successful");
       return;
     }
 
     try {
       redirectUrl = URLDecoder.decode(redirectUrl, StandardCharsets.UTF_8);
     } catch (IllegalArgumentException e) {
-      log.error("Error decoding redirect URL: {}", e.getMessage());
+      log.error("Error decoding redirect URI: {}", e.getMessage());
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      response.getWriter().write("Invalid redirect URL");
+      response.getWriter().write("Invalid redirect URI");
       return;
     }
 
-    log.info("Redirecting to: {}", redirectUrl);
+    log.info("OAuth2 auth successful: redirecting to success page: {}", redirectUrl);
     getRedirectStrategy().sendRedirect(request, response, redirectUrl);
   }
 }

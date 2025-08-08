@@ -3,6 +3,7 @@ package com.github.codogma.codogmaback.config;
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 import com.github.codogma.codogmaback.handler.oauth.CustomOAuth2SuccessHandler;
+import com.github.codogma.codogmaback.security.CustomAuthenticationEntryPoint;
 import com.github.codogma.codogmaback.security.ExceptionHandlingFilter;
 import com.github.codogma.codogmaback.security.JwtAuthenticationFilter;
 import com.github.codogma.codogmaback.security.RedirectUriFilter;
@@ -37,6 +38,7 @@ public class SecurityConfiguration {
   @Value("${cors.max-age:300}")
   private long maxAge;
   private final CorsProperties corsProperties;
+  private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
   private final AuthenticationProvider authenticationProvider;
   private final JwtAuthenticationFilter jwtAuthenticationFilter;
   private final ExceptionHandlingFilter exceptionHandlingFilter;
@@ -46,7 +48,9 @@ public class SecurityConfiguration {
   @Bean
   public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
     return http.csrf(AbstractHttpConfigurer::disable)
-        .cors(cors -> cors.configurationSource(corsConfigurationSource())).authorizeHttpRequests(
+        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+        .anonymous(AbstractHttpConfigurer::disable)
+        .authorizeHttpRequests(
             auth -> auth.requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/api-docs/**",
                     "/v3/api-docs/**", "/auth/**", "/ws/**", "/error", "/swagger-resources/**")
                 .permitAll()
@@ -57,11 +61,10 @@ public class SecurityConfiguration {
             oauth2 -> oauth2.successHandler(customOAuth2SuccessHandler).userInfoEndpoint(
                 userInfo -> userInfo.userAuthoritiesMapper(new SimpleAuthorityMapper())))
         .exceptionHandling(
-            exception -> exception.authenticationEntryPoint((request, response, authException) -> {
-              throw authException;
-            }).accessDeniedHandler((request, response, accessDeniedException) -> {
-              throw accessDeniedException;
-            })).authenticationProvider(authenticationProvider)
+            exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint)
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                  throw accessDeniedException;
+                })).authenticationProvider(authenticationProvider)
         .sessionManagement(session -> session.sessionCreationPolicy(STATELESS))
         .addFilterBefore(redirectUriFilter, OAuth2AuthorizationRequestRedirectFilter.class)
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)

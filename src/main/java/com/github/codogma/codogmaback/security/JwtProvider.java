@@ -1,7 +1,10 @@
 package com.github.codogma.codogmaback.security;
 
+import com.github.codogma.codogmaback.exception.AccessTokenExpiredException;
+import com.github.codogma.codogmaback.exception.RefreshTokenExpiredException;
 import com.github.codogma.codogmaback.model.UserModel;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -72,10 +75,27 @@ public class JwtProvider {
     return claims.getExpiration().after(new Date());
   }
 
-  public Claims extractAllClaims(String token) {
+  public Claims extractAccessTokenClaims(String token) {
+    try {
+      return Jwts.parser().verifyWith(getSignInKey()).requireIssuer(issuer)
+          .requireAudience(audience).build().parseSignedClaims(token).getPayload();
+    } catch (ExpiredJwtException e) {
+      throw new AccessTokenExpiredException(e.getMessage());
+    }
+  }
+
+  public Claims extractRefreshTokenClaims(String token) {
+    try {
+      return Jwts.parser().verifyWith(getSignInKey()).requireIssuer(issuer)
+          .requireAudience(audience).build().parseSignedClaims(token).getPayload();
+    } catch (ExpiredJwtException e) {
+      throw new RefreshTokenExpiredException(e.getMessage());
+    }
+  }
+
+  private Claims extractAllClaims(String token) {
     return Jwts.parser().verifyWith(getSignInKey()).requireIssuer(issuer).requireAudience(audience)
         .build().parseSignedClaims(token).getPayload();
-
   }
 
   private SecretKey getSignInKey() {

@@ -19,6 +19,8 @@ public class GitlabOAuth2ProviderHandler implements OAuth2ProviderHandler {
     final String username = oAuth2User.getAttribute("username");
     final String email = oAuth2User.getAttribute("email");
 
+    // TODO: реализовать обработку загрузки аватара
+
     return UserModel.builder().gitlabId(gitlabId).username(username).email(email)
         .role(Role.ROLE_USER).build();
   }

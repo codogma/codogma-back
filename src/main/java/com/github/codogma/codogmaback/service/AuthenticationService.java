@@ -6,9 +6,9 @@ import com.github.codogma.codogmaback.dto.SignInRequest;
 import com.github.codogma.codogmaback.dto.SignUpRequest;
 import com.github.codogma.codogmaback.exception.DeviceMismatchException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
-import com.github.codogma.codogmaback.exception.InvalidTokenException;
+import com.github.codogma.codogmaback.exception.InvalidRefreshTokenException;
+import com.github.codogma.codogmaback.exception.RefreshTokenExpiredException;
 import com.github.codogma.codogmaback.exception.RevokedTokenException;
-import com.github.codogma.codogmaback.exception.TokenExpiredException;
 import com.github.codogma.codogmaback.model.ConfirmationToken;
 import com.github.codogma.codogmaback.model.RefreshTokenModel;
 import com.github.codogma.codogmaback.model.Role;
@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -95,7 +96,7 @@ public class AuthenticationService {
       throw exceptionFactory.emailAlreadyConfirmed();
     }
     if (confirmationToken.getExpiresAt().isBefore(Instant.now())) {
-      throw exceptionFactory.tokenExpired();
+      throw exceptionFactory.confirmationTokenExpired();
     }
     UserModel user = confirmationToken.getUser();
     user.setEnabled(true);
@@ -145,9 +146,10 @@ public class AuthenticationService {
       }
 
       return convertUserModelToAuthDTO(user, accessTokenExpiry);
-    } catch (Exception e) {
-      log.error("Authentication failed for user: {}", input.getUsernameOrEmail(), e);
-      throw e;
+    } catch (BadCredentialsException ex) {
+      log.error("Authentication failed for user: {}, error: {}", input.getUsernameOrEmail(),
+          ex.getMessage());
+      throw exceptionFactory.incorrectPassword();
     }
   }
 
@@ -156,11 +158,11 @@ public class AuthenticationService {
     String refreshTokenStr = cookieUtils.extractRefreshToken(request);
     if (refreshTokenStr == null) {
       cookieUtils.invalidateAllTokens(response);
-      throw new InvalidTokenException("Refresh token not found");
+      throw new InvalidRefreshTokenException("Refresh token not found");
     }
 
     try {
-      Claims claims = jwtProvider.extractAllClaims(refreshTokenStr);
+      Claims claims = jwtProvider.extractRefreshTokenClaims(refreshTokenStr);
       String jti = claims.getId();
       if (tokenRevocationService.isTokenRevoked(jti)) {
         throw new RevokedTokenException("Refresh token revoked");
@@ -208,9 +210,9 @@ public class AuthenticationService {
       cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
 
-    } catch (ExpiredJwtException e) {
+    } catch (RefreshTokenExpiredException e) {
       cookieUtils.invalidateAllTokens(response);
-      throw new TokenExpiredException("Refresh token expired");
+      throw exceptionFactory.refreshTokenExpired();
     }
   }
 
@@ -220,13 +222,14 @@ public class AuthenticationService {
 
     if (refreshTokenStr == null) {
       cookieUtils.invalidateAllTokens(response);
-      throw new InvalidTokenException("Refresh token not found");
+      throw new InvalidRefreshTokenException("Refresh token not found");
     }
 
     try {
-      Claims refreshClaims = jwtProvider.extractAllClaims(refreshTokenStr);
+      Claims refreshClaims = jwtProvider.extractRefreshTokenClaims(refreshTokenStr);
       String jti = refreshClaims.getId();
       if (tokenRevocationService.isTokenRevoked(jti)) {
+        cookieUtils.invalidateAllTokens(response);
         throw new RevokedTokenException("Refresh token revoked");
       }
 
@@ -237,6 +240,7 @@ public class AuthenticationService {
       String tokenDeviceId = refreshClaims.get(deviceClaimName, String.class);
       String currentDeviceId = deviceAwareService.generateDeviceId(request);
       if (!tokenDeviceId.equals(currentDeviceId)) {
+        cookieUtils.invalidateAllTokens(response);
         throw new DeviceMismatchException("Device mismatch");
       }
 
@@ -247,7 +251,7 @@ public class AuthenticationService {
         needsRefresh = true;
       } else {
         try {
-          Claims accessClaims = jwtProvider.extractAllClaims(accessTokenStr);
+          Claims accessClaims = jwtProvider.extractAccessTokenClaims(accessTokenStr);
           accessTokenExpiry = accessClaims.getExpiration().toInstant();
           Instant now = Instant.now();
 
@@ -300,9 +304,9 @@ public class AuthenticationService {
       }
 
       return convertUserModelToAuthDTO(user, accessTokenExpiry);
-    } catch (ExpiredJwtException e) {
+    } catch (RefreshTokenExpiredException e) {
       cookieUtils.invalidateAllTokens(response);
-      throw new TokenExpiredException("Refresh token expired");
+      throw exceptionFactory.refreshTokenExpired();
     }
   }
 
@@ -314,7 +318,7 @@ public class AuthenticationService {
     log.info("Attempting to logout user: {}", username);
 
     if (refreshToken != null) {
-      Claims claims = jwtProvider.extractAllClaims(refreshToken);
+      Claims claims = jwtProvider.extractRefreshTokenClaims(refreshToken);
       String jti = claims.getId();
       tokenRevocationService.revokeToken(jti);
     }
