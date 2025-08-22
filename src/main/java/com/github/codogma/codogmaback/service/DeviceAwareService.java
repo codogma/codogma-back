@@ -52,6 +52,7 @@ public class DeviceAwareService {
     // Составные части идентификатора устройства
     String userAgent = request.getHeader("User-Agent");
     String timeZone = request.getHeader("Time-Zone");
+    log.info("User-Agent: {}, Time-Zone: {}", userAgent, timeZone);
 
     // Нормализация данных
     String normalizedUserAgent = userAgent != null ? userAgent : "";
@@ -66,6 +67,7 @@ public class DeviceAwareService {
   public String generateDeviceId(StompHeaderAccessor accessor) {
     String userAgent = accessor.getFirstNativeHeader("User-Agent");
     String timeZone = accessor.getFirstNativeHeader("Time-Zone");
+    log.info("User-Agent: {}, Time-Zone: {}", userAgent, timeZone);
 
     String normalizedUserAgent = userAgent != null ? userAgent : "";
     String normalizedTimeZone = timeZone != null ? timeZone : "";

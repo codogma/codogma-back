@@ -62,7 +62,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         log.debug("Access token: {}, refresh token: {}", accessToken != null ? "present" : "absent",
             refreshToken != null ? "present" : "absent");
       }
-      if (accessToken != null && jwtProvider.isTokenValid(accessToken)) {
+      if (accessToken != null && jwtProvider.isTokenValid(accessToken) && refreshToken != null
+          && jwtProvider.isTokenValid(refreshToken)) {
         Claims claims = jwtProvider.extractAccessTokenClaims(accessToken);
 
         // Check if token has been revoked
@@ -81,32 +82,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       } else if (accessToken == null && refreshToken != null && jwtProvider.isTokenValid(
           refreshToken)) {
         log.debug("Access token missing but refresh token present - token refresh required");
-        SecurityContextHolder.clearContext();
-        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-        response.addHeader("X-Security-Event", "access_token_missing");
-        response.flushBuffer();
+        handleUnauthorized(response, "access_token_missing");
         return;
       }
     } catch (AccessTokenExpiredException ex) {
       log.debug("Access token expired: {}", ex.getMessage());
-      SecurityContextHolder.clearContext();
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-      response.addHeader("X-Security-Event", "access_token_expired");
-      response.flushBuffer();
+      handleUnauthorized(response, "access_token_expired");
       return;
     } catch (DeviceMismatchException ex) {
       log.debug(ex.getMessage());
-      SecurityContextHolder.clearContext();
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-      response.addHeader("X-Security-Event", "device_mismatch");
-      response.flushBuffer();
+      handleUnauthorized(response, "device_mismatch");
       return;
     } catch (RevokedTokenException ex) {
       log.warn("Revoked JWT token: {}", ex.getMessage());
-      SecurityContextHolder.clearContext();
-      response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-      response.addHeader("X-Security-Event", "refresh_token_revoked");
-      response.flushBuffer();
+      handleUnauthorized(response, "refresh_token_revoked");
       return;
     } catch (JwtException | IllegalArgumentException ex) {
       log.warn("Invalid JWT token: {}", ex.getMessage());
@@ -115,5 +104,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       return;
     }
     filterChain.doFilter(request, response);
+  }
+
+  private void handleUnauthorized(HttpServletResponse response, String event) throws IOException {
+    SecurityContextHolder.clearContext();
+    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+    response.addHeader("X-Security-Event", event);
+    response.flushBuffer();
   }
 }

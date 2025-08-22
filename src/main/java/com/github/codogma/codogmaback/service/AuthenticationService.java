@@ -120,16 +120,20 @@ public class AuthenticationService {
 
       // Generate tokens
       String deviceId = deviceAwareService.generateDeviceId(request);
+
+      refreshTokenRepository.deleteByUserUsernameAndDeviceId(user.getUsername(), deviceId);
       String accessToken = jwtProvider.generateAccessToken(user, deviceId);
       String refreshToken = jwtProvider.generateRefreshToken(user, deviceId);
-      refreshTokenRepository.deleteByUserUsernameAndDeviceId(user.getUsername(), deviceId);
+
+      Claims refreshClaims = jwtProvider.extractRefreshTokenClaims(refreshToken);
+      String jti = refreshClaims.getId();
 
       // Set tokens expiration
       Instant accessTokenExpiry = Instant.now().plusSeconds(accessExpiration);
       Instant refreshTokenExpiry = Instant.now().plusSeconds(refreshExpiration);
 
       // Store refresh token
-      RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder()
+      RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder().jti(jti)
           .tokenHash(jwtProvider.hashToken(refreshToken)).user(user).deviceId(deviceId)
           .expiresAt(refreshTokenExpiry).revoked(false).build();
       refreshTokenRepository.save(refreshTokenModel);
@@ -139,10 +143,18 @@ public class AuthenticationService {
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, refreshToken);
 
       // Enforce session limits
-      int activeSessions = refreshTokenRepository.countByUserId(user.getId());
-      if (activeSessions > MAX_SESSIONS_PER_USER) {
-        refreshTokenRepository.findFirstByUserIdOrderByCreatedAtAsc(user.getId())
-            .ifPresent(refreshTokenRepository::delete);
+      List<RefreshTokenModel> userSessions = refreshTokenRepository
+          .findByUserIdOrderByCreatedAtDesc(user.getId());
+
+      if (userSessions.size() > MAX_SESSIONS_PER_USER) {
+        // Удаляем старые сессии, оставляя только MAX_SESSIONS_PER_USER новых
+        List<RefreshTokenModel> sessionsToDelete = userSessions
+            .subList(MAX_SESSIONS_PER_USER, userSessions.size());
+
+        refreshTokenRepository.deleteAll(sessionsToDelete);
+
+        log.info("Removed {} old sessions for user ID: {}",
+            sessionsToDelete.size(), user.getId());
       }
 
       return convertUserModelToAuthDTO(user, accessTokenExpiry);
@@ -201,7 +213,7 @@ public class AuthenticationService {
           refreshTokenRepository.save(existingToken);
         }
       } else {
-        RefreshTokenModel newStoredToken = RefreshTokenModel.builder()
+        RefreshTokenModel newStoredToken = RefreshTokenModel.builder().jti(jti)
             .tokenHash(newRefreshTokenHash).user(user).deviceId(currentDeviceId)
             .expiresAt(refreshTokenExpiry).revoked(false).build();
         refreshTokenRepository.save(newStoredToken);
@@ -209,6 +221,7 @@ public class AuthenticationService {
 
       cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
+      log.info("Refreshed token for user: {}", username);
 
     } catch (RefreshTokenExpiredException e) {
       cookieUtils.invalidateAllTokens(response);
@@ -293,7 +306,7 @@ public class AuthenticationService {
             refreshTokenRepository.save(existingToken);
           }
         } else {
-          RefreshTokenModel newStoredToken = RefreshTokenModel.builder()
+          RefreshTokenModel newStoredToken = RefreshTokenModel.builder().jti(jti)
               .tokenHash(newRefreshTokenHash).user(user).deviceId(currentDeviceId)
               .expiresAt(refreshTokenExpiry).revoked(false).build();
           refreshTokenRepository.save(newStoredToken);
