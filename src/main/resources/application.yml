@@ -59,7 +59,7 @@ spring:
       audience: codogma-back
       access-token-name: access_token
       refresh-token-name: refresh_token
-      access-expiration: 60
+      access-expiration: 900
       refresh-expiration: 604800
     oauth2:
       client:
