@@ -16,9 +16,9 @@ public class CookieUtils {
   @Value("${spring.profiles.active:dev}")
   private String activeProfile;
   @Value("${spring.security.jwt.access-expiration}")
-  private int accessExpiration;
+  private long accessExpiration;
   @Value("${spring.security.jwt.refresh-expiration}")
-  private int refreshExpiration;
+  private long refreshExpiration;
   @Value("${spring.security.jwt.access-token-name}")
   private String accessTokenName;
   @Value("${spring.security.jwt.refresh-token-name}")

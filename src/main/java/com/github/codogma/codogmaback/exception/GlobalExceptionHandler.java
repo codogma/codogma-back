@@ -14,7 +14,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -64,13 +63,13 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(UserAlreadyExistsException.class)
   public ResponseEntity<String> handleUserAlreadyExistsException(UserAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(UsernameAlreadyExistsException.class)
   public ResponseEntity<String> handleUsernameAlreadyExistsException(
       UsernameAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(UsernameOrEmailNotFoundException.class)
@@ -102,12 +101,12 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(EmailAlreadyExistsException.class)
   public ResponseEntity<String> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(EmailSendException.class)
   public ResponseEntity<String> handleEmailSendException(EmailSendException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNPROCESSABLE_ENTITY);
   }
 
   @ExceptionHandler(IncorrectPasswordException.class)
@@ -117,8 +116,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(BadCredentialsException.class)
   public ResponseEntity<String> handleBadCredentialsException(BadCredentialsException ex) {
-    return new ResponseEntity<>(localizationUtil.getMessage("auth.bad.credentials"),
-        HttpStatus.UNAUTHORIZED);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.UNAUTHORIZED);
   }
 
   @ExceptionHandler(NoResourceFoundException.class)
@@ -156,13 +154,13 @@ public class GlobalExceptionHandler {
         .header("X-Security-Event", "device_mismatch").body(error);
   }
 
-  @ExceptionHandler(AuthenticationException.class)
-  public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
-    log.warn("Authentication exception caught: {}", ex.getMessage());
-    ErrorResponse errorResponse = ErrorResponse.builder().errorCode("Unauthorized")
-        .message("Authentication failed. Please check your credentials.").build();
-    return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
-  }
+//  @ExceptionHandler(AuthenticationException.class)
+//  public ResponseEntity<ErrorResponse> handleAuthenticationException(AuthenticationException ex) {
+//    log.warn("Authentication exception caught: {}", ex.getMessage());
+//    ErrorResponse errorResponse = ErrorResponse.builder().errorCode("Unauthorized")
+//        .message("Authentication failed. Please check your credentials.").build();
+//    return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+//  }
 
   @ExceptionHandler(AuthorizationDeniedException.class)
   public ResponseEntity<ErrorResponse> handleAuthorizationDeniedException(
@@ -186,20 +184,40 @@ public class GlobalExceptionHandler {
       InsufficientAuthenticationException ex) {
     log.error("Insufficient authentication exception caught", ex);
     ErrorResponse errorResponse = ErrorResponse.builder().errorCode("Unauthorized")
-        .message(localizationUtil.getMessage("auth.insufficient")).build();
+        .message(ex.getMessage()).build();
     return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
   }
 
-  @ExceptionHandler(TokenExpiredException.class)
-  public ResponseEntity<String> handleTokenExpiredException(TokenExpiredException ex) {
+  @ExceptionHandler(AccessTokenExpiredException.class)
+  public ResponseEntity<String> handleAccessTokenExpiredException(AccessTokenExpiredException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-        .header("X-Security-Event", "token_expired").body(ex.getMessage());
+        .header("X-Security-Event", "access_token_expired").body(ex.getMessage());
   }
 
-  @ExceptionHandler(InvalidTokenException.class)
-  public ResponseEntity<String> handleInvalidTokenException(InvalidTokenException ex) {
+  @ExceptionHandler(ConfirmationTokenExpiredException.class)
+  public ResponseEntity<String> handleConfirmationTokenExpiredException(
+      ConfirmationTokenExpiredException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "confirmation_token_expired").body(ex.getMessage());
+  }
+
+  @ExceptionHandler(RefreshTokenExpiredException.class)
+  public ResponseEntity<String> handleRefreshTokenExpiredException(
+      RefreshTokenExpiredException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "refresh_token_expired").body(ex.getMessage());
+  }
+
+  @ExceptionHandler(InvalidRefreshTokenException.class)
+  public ResponseEntity<String> handleInvalidTokenException(InvalidRefreshTokenException ex) {
     return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
         .header("X-Security-Event", "invalid_refresh_token").body(ex.getMessage());
+  }
+
+  @ExceptionHandler(RevokedTokenException.class)
+  public ResponseEntity<String> handleRevokedTokenException(RevokedTokenException ex) {
+    return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+        .header("X-Security-Event", "refresh_token_revoked").body(ex.getMessage());
   }
 
   @ExceptionHandler(FileStorageException.class)
@@ -215,13 +233,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(SubscriptionAlreadyExistsException.class)
   public ResponseEntity<String> handleSubscribeAlreadyExistsException(
       SubscriptionAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(CompilationAlreadyExistsException.class)
   public ResponseEntity<String> handleCompilationAlreadyExistsException(
       CompilationAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(CompilationNotExistsException.class)
@@ -233,13 +251,13 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(CompilationNotFoundException.class)
   public ResponseEntity<String> handleCompilationNotFoundException(
       CompilationNotFoundException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
   }
 
   @ExceptionHandler(FavoriteAlreadyExistsException.class)
   public ResponseEntity<String> handleFavoriteAlreadyExistsException(
       FavoriteAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(Exception.class)
@@ -255,7 +273,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(LikeAlreadyExistsException.class)
   public ResponseEntity<String> handleLikeAlreadyExistsException(LikeAlreadyExistsException ex) {
-    return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT);
   }
 
   @ExceptionHandler(LikeNotFoundException.class)

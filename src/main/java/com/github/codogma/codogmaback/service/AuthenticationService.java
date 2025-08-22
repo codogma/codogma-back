@@ -6,9 +6,9 @@ import com.github.codogma.codogmaback.dto.SignInRequest;
 import com.github.codogma.codogmaback.dto.SignUpRequest;
 import com.github.codogma.codogmaback.exception.DeviceMismatchException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
-import com.github.codogma.codogmaback.exception.InvalidTokenException;
+import com.github.codogma.codogmaback.exception.InvalidRefreshTokenException;
+import com.github.codogma.codogmaback.exception.RefreshTokenExpiredException;
 import com.github.codogma.codogmaback.exception.RevokedTokenException;
-import com.github.codogma.codogmaback.exception.TokenExpiredException;
 import com.github.codogma.codogmaback.model.ConfirmationToken;
 import com.github.codogma.codogmaback.model.RefreshTokenModel;
 import com.github.codogma.codogmaback.model.Role;
@@ -22,8 +22,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -31,6 +31,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -45,8 +46,10 @@ public class AuthenticationService {
 
   @Value("${spring.security.jwt.device-claim-name}")
   private String deviceClaimName;
+  @Value("${spring.security.jwt.access-expiration}")
+  private long accessExpiration;
   @Value("${spring.security.jwt.refresh-expiration}")
-  private int refreshExpiration;
+  private long refreshExpiration;
 
   private final AuthenticationManager authenticationManager;
   private final ConfirmationTokenService tokenService;
@@ -79,10 +82,10 @@ public class AuthenticationService {
     userRepository.save(user);
     String token = UUID.randomUUID().toString();
     ConfirmationToken confirmationToken = ConfirmationToken.builder().token(token).user(user)
-        .createdAt(LocalDateTime.now()).expiresAt(LocalDateTime.now().plusHours(24)).build();
+        .createdAt(Instant.now()).expiresAt(Instant.now().plusSeconds(24 * 3600L)).build();
     tokenService.saveConfirmationToken(confirmationToken);
     emailService.sendEmailVerification(user.getEmail(), token, origin);
-    return convertUserModelToDto(user);
+    return convertUserModelToCetUserDTO(user);
   }
 
   @Transactional
@@ -92,8 +95,8 @@ public class AuthenticationService {
     if (confirmationToken.getConfirmedAt() != null) {
       throw exceptionFactory.emailAlreadyConfirmed();
     }
-    if (confirmationToken.getExpiresAt().isBefore(LocalDateTime.now())) {
-      throw exceptionFactory.tokenExpired();
+    if (confirmationToken.getExpiresAt().isBefore(Instant.now())) {
+      throw exceptionFactory.confirmationTokenExpired();
     }
     UserModel user = confirmationToken.getUser();
     user.setEnabled(true);
@@ -117,13 +120,22 @@ public class AuthenticationService {
 
       // Generate tokens
       String deviceId = deviceAwareService.generateDeviceId(request);
+
+      refreshTokenRepository.deleteByUserUsernameAndDeviceId(user.getUsername(), deviceId);
       String accessToken = jwtProvider.generateAccessToken(user, deviceId);
       String refreshToken = jwtProvider.generateRefreshToken(user, deviceId);
-      refreshTokenRepository.deleteByUserUsernameAndDeviceId(user.getUsername(), deviceId);
+
+      Claims refreshClaims = jwtProvider.extractRefreshTokenClaims(refreshToken);
+      String jti = refreshClaims.getId();
+
+      // Set tokens expiration
+      Instant accessTokenExpiry = Instant.now().plusSeconds(accessExpiration);
+      Instant refreshTokenExpiry = Instant.now().plusSeconds(refreshExpiration);
+
       // Store refresh token
-      RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder()
+      RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder().jti(jti)
           .tokenHash(jwtProvider.hashToken(refreshToken)).user(user).deviceId(deviceId)
-          .expiresAt(Instant.now().plusMillis(refreshExpiration)).revoked(false).build();
+          .expiresAt(refreshTokenExpiry).revoked(false).build();
       refreshTokenRepository.save(refreshTokenModel);
 
       // Set cookies
@@ -131,18 +143,25 @@ public class AuthenticationService {
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, refreshToken);
 
       // Enforce session limits
-      int activeSessions = refreshTokenRepository.countByUserId(user.getId());
-      if (activeSessions > MAX_SESSIONS_PER_USER) {
-        refreshTokenRepository.findFirstByUserIdOrderByCreatedAtAsc(user.getId())
-            .ifPresent(refreshTokenRepository::delete);
+      List<RefreshTokenModel> userSessions = refreshTokenRepository
+          .findByUserIdOrderByCreatedAtDesc(user.getId());
+
+      if (userSessions.size() > MAX_SESSIONS_PER_USER) {
+        // Удаляем старые сессии, оставляя только MAX_SESSIONS_PER_USER новых
+        List<RefreshTokenModel> sessionsToDelete = userSessions
+            .subList(MAX_SESSIONS_PER_USER, userSessions.size());
+
+        refreshTokenRepository.deleteAll(sessionsToDelete);
+
+        log.info("Removed {} old sessions for user ID: {}",
+            sessionsToDelete.size(), user.getId());
       }
 
-      return AuthDTO.builder().id(user.getUuid()).name(user.getUsername()).email(user.getEmail())
-          .role(user.getRole()).image(user.getAvatarUrl())
-          .expires(Instant.now().plusMillis(refreshExpiration)).build();
-    } catch (Exception e) {
-      log.error("Authentication failed for user: {}", input.getUsernameOrEmail(), e);
-      throw e;
+      return convertUserModelToAuthDTO(user, accessTokenExpiry);
+    } catch (BadCredentialsException ex) {
+      log.error("Authentication failed for user: {}, error: {}", input.getUsernameOrEmail(),
+          ex.getMessage());
+      throw exceptionFactory.incorrectPassword();
     }
   }
 
@@ -151,11 +170,11 @@ public class AuthenticationService {
     String refreshTokenStr = cookieUtils.extractRefreshToken(request);
     if (refreshTokenStr == null) {
       cookieUtils.invalidateAllTokens(response);
-      throw new InvalidTokenException("Refresh token not found");
+      throw new InvalidRefreshTokenException("Refresh token not found");
     }
 
     try {
-      Claims claims = jwtProvider.extractAllClaims(refreshTokenStr);
+      Claims claims = jwtProvider.extractRefreshTokenClaims(refreshTokenStr);
       String jti = claims.getId();
       if (tokenRevocationService.isTokenRevoked(jti)) {
         throw new RevokedTokenException("Refresh token revoked");
@@ -178,6 +197,9 @@ public class AuthenticationService {
       List<RefreshTokenModel> existingTokens = refreshTokenRepository.findAllByUserUsernameAndDeviceId(
           username, currentDeviceId);
 
+      // Set tokens expiration
+      Instant refreshTokenExpiry = Instant.now().plusSeconds(refreshExpiration);
+
       if (!existingTokens.isEmpty()) {
         if (existingTokens.size() > 1) {
           log.warn("Found {} duplicate refresh tokens for user {} and device {}. Cleaning up.",
@@ -186,32 +208,119 @@ public class AuthenticationService {
         } else {
           RefreshTokenModel existingToken = existingTokens.getFirst();
           existingToken.setTokenHash(newRefreshTokenHash);
-          existingToken.setExpiresAt(Instant.now().plusMillis(refreshExpiration));
+          existingToken.setExpiresAt(refreshTokenExpiry);
           existingToken.setRevoked(false);
           refreshTokenRepository.save(existingToken);
-
-          cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
-          cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
-          return;
         }
+      } else {
+        RefreshTokenModel newStoredToken = RefreshTokenModel.builder().jti(jti)
+            .tokenHash(newRefreshTokenHash).user(user).deviceId(currentDeviceId)
+            .expiresAt(refreshTokenExpiry).revoked(false).build();
+        refreshTokenRepository.save(newStoredToken);
       }
-
-      RefreshTokenModel newStoredToken = RefreshTokenModel.builder().tokenHash(newRefreshTokenHash)
-          .user(user).deviceId(currentDeviceId)
-          .expiresAt(Instant.now().plusMillis(refreshExpiration)).revoked(false).build();
-      refreshTokenRepository.save(newStoredToken);
 
       cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
+      log.info("Refreshed token for user: {}", username);
 
-    } catch (ExpiredJwtException e) {
+    } catch (RefreshTokenExpiredException e) {
       cookieUtils.invalidateAllTokens(response);
-      throw new TokenExpiredException("Refresh token expired");
+      throw exceptionFactory.refreshTokenExpired();
     }
   }
 
-  public Optional<GetUser> currentUser(UserModel userModel) {
-    return Optional.ofNullable(userModel).map(this::convertUserModelToDto);
+  public AuthDTO currentUser(HttpServletRequest request, HttpServletResponse response) {
+    String accessTokenStr = cookieUtils.extractAccessToken(request);
+    String refreshTokenStr = cookieUtils.extractRefreshToken(request);
+
+    if (refreshTokenStr == null) {
+      cookieUtils.invalidateAllTokens(response);
+      throw new InvalidRefreshTokenException("Refresh token not found");
+    }
+
+    try {
+      Claims refreshClaims = jwtProvider.extractRefreshTokenClaims(refreshTokenStr);
+      String jti = refreshClaims.getId();
+      if (tokenRevocationService.isTokenRevoked(jti)) {
+        cookieUtils.invalidateAllTokens(response);
+        throw new RevokedTokenException("Refresh token revoked");
+      }
+
+      String username = refreshClaims.getSubject();
+      UserModel user = userRepository.findByUsername(username)
+          .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+      String tokenDeviceId = refreshClaims.get(deviceClaimName, String.class);
+      String currentDeviceId = deviceAwareService.generateDeviceId(request);
+      if (!tokenDeviceId.equals(currentDeviceId)) {
+        cookieUtils.invalidateAllTokens(response);
+        throw new DeviceMismatchException("Device mismatch");
+      }
+
+      boolean needsRefresh = false;
+      Instant accessTokenExpiry = Instant.now().plusSeconds(accessExpiration);
+      if (accessTokenStr == null) {
+        log.info("Access token missing for user: {}, refreshing...", username);
+        needsRefresh = true;
+      } else {
+        try {
+          Claims accessClaims = jwtProvider.extractAccessTokenClaims(accessTokenStr);
+          accessTokenExpiry = accessClaims.getExpiration().toInstant();
+          Instant now = Instant.now();
+
+          long secondsLeft = Duration.between(now, accessTokenExpiry).getSeconds();
+          if (secondsLeft < 300) {
+            log.info("Access token expires in {} seconds for user: {}, refreshing...", secondsLeft,
+                username);
+            needsRefresh = true;
+          }
+
+        } catch (ExpiredJwtException e) {
+          // Access token истек, будем обновлять
+          log.info("Access token expired for user: {}, refreshing...", username);
+          needsRefresh = true;
+        }
+      }
+
+      if (needsRefresh) {
+        String newAccessToken = jwtProvider.generateAccessToken(user, currentDeviceId);
+        String newRefreshTokenStr = jwtProvider.generateRefreshToken(user, currentDeviceId);
+        String newRefreshTokenHash = jwtProvider.hashToken(newRefreshTokenStr);
+
+        List<RefreshTokenModel> existingTokens = refreshTokenRepository.findAllByUserUsernameAndDeviceId(
+            username, currentDeviceId);
+
+        // Set tokens expiration
+        Instant refreshTokenExpiry = Instant.now().plusSeconds(refreshExpiration);
+
+        if (!existingTokens.isEmpty()) {
+          if (existingTokens.size() > 1) {
+            log.warn("Found {} duplicate refresh tokens for user {} and device {}. Cleaning up.",
+                existingTokens.size(), username, currentDeviceId);
+            refreshTokenRepository.deleteAll(existingTokens);
+          } else {
+            RefreshTokenModel existingToken = existingTokens.getFirst();
+            existingToken.setTokenHash(newRefreshTokenHash);
+            existingToken.setExpiresAt(refreshTokenExpiry);
+            existingToken.setRevoked(false);
+            refreshTokenRepository.save(existingToken);
+          }
+        } else {
+          RefreshTokenModel newStoredToken = RefreshTokenModel.builder().jti(jti)
+              .tokenHash(newRefreshTokenHash).user(user).deviceId(currentDeviceId)
+              .expiresAt(refreshTokenExpiry).revoked(false).build();
+          refreshTokenRepository.save(newStoredToken);
+        }
+
+        cookieUtils.setAccessTokenToHttpOnlyCookie(response, newAccessToken);
+        cookieUtils.setRefreshTokenToHttpOnlyCookie(response, newRefreshTokenStr);
+      }
+
+      return convertUserModelToAuthDTO(user, accessTokenExpiry);
+    } catch (RefreshTokenExpiredException e) {
+      cookieUtils.invalidateAllTokens(response);
+      throw exceptionFactory.refreshTokenExpired();
+    }
   }
 
   @Transactional
@@ -222,7 +331,7 @@ public class AuthenticationService {
     log.info("Attempting to logout user: {}", username);
 
     if (refreshToken != null) {
-      Claims claims = jwtProvider.extractAllClaims(refreshToken);
+      Claims claims = jwtProvider.extractRefreshTokenClaims(refreshToken);
       String jti = claims.getId();
       tokenRevocationService.revokeToken(jti);
     }
@@ -233,10 +342,15 @@ public class AuthenticationService {
     log.info("User logged out successfully: {}", username);
   }
 
-  private GetUser convertUserModelToDto(UserModel userModel) {
+  private GetUser convertUserModelToCetUserDTO(UserModel userModel) {
     return GetUser.builder().username(userModel.getUsername()).email(userModel.getEmail())
         .firstName(userModel.getFirstName()).lastName(userModel.getLastName())
         .bio(userModel.getBio()).role(userModel.getRole()).avatarUrl(userModel.getAvatarUrl())
         .build();
+  }
+
+  private AuthDTO convertUserModelToAuthDTO(UserModel user, Instant expiresAt) {
+    return AuthDTO.builder().id(user.getUuid()).name(user.getUsername()).email(user.getEmail())
+        .image(user.getAvatarUrl()).role(user.getRole()).expires(expiresAt).build();
   }
 }

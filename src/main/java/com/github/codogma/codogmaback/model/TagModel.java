@@ -16,7 +16,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
-import lombok.ToString.Exclude;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.FullTextField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericField;
 import org.hibernate.search.mapper.pojo.mapping.definition.annotation.Indexed;
@@ -41,7 +40,6 @@ public class TagModel {
   @FullTextField
   private String name;
   @ManyToMany(fetch = FetchType.LAZY, mappedBy = "tags")
-  @Exclude
+  @ToString.Exclude
   private List<ArticleModel> articles = new ArrayList<>();
 }
-

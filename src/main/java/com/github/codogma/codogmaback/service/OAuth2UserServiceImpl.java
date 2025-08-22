@@ -7,6 +7,7 @@ import com.github.codogma.codogmaback.repository.RefreshTokenRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
 import com.github.codogma.codogmaback.security.JwtProvider;
 import com.github.codogma.codogmaback.util.CookieUtils;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.time.Instant;
@@ -32,8 +33,10 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 @RequiredArgsConstructor
 public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
+  @Value("${spring.security.jwt.access-expiration}")
+  private long accessExpiration;
   @Value("${spring.security.jwt.refresh-expiration}")
-  private int refreshExpiration;
+  private long refreshExpiration;
 
   private final CookieUtils cookieUtils;
   private final DeviceAwareService deviceAwareService;
@@ -59,8 +62,9 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
 
     UserModel existingUser = userRepository.findByEmail(user.getEmail()).orElseGet(() -> {
+      user.setUuid(UUID.randomUUID());
       UserModel newUser = userRepository.save(user);
-      newUser.setUsername("username_" + newUser.getId());
+      newUser.setUsername("username_" + newUser.getUuid());
       return newUser;
     });
     existingUser.setEnabled(true);
@@ -69,15 +73,22 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
 
     HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(
         RequestContextHolder.getRequestAttributes())).getRequest();
+
     String deviceId = deviceAwareService.generateDeviceId(request);
+
     String accessToken = jwtProvider.generateAccessToken(existingUser, deviceId);
     String refreshToken = jwtProvider.generateRefreshToken(existingUser, deviceId);
 
+    Claims refreshClaims = jwtProvider.extractRefreshTokenClaims(refreshToken);
+    String jti = refreshClaims.getId();
+
+    // Set tokens expiration
+    Instant refreshTokenExpiry = Instant.now().plusSeconds(refreshExpiration);
+
     // Store refresh token
-    RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder()
-        .tokenHash(jwtProvider.hashToken(refreshToken)).user(existingUser)
-        .deviceId("oauth2-" + registrationId).expiresAt(Instant.now().plusMillis(refreshExpiration))
-        .revoked(false).build();
+    RefreshTokenModel refreshTokenModel = RefreshTokenModel.builder().jti(jti)
+        .tokenHash(jwtProvider.hashToken(refreshToken)).user(existingUser).deviceId(deviceId)
+        .expiresAt(refreshTokenExpiry).revoked(false).build();
     refreshTokenRepository.save(refreshTokenModel);
 
     // Set cookies
@@ -88,14 +99,22 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
       cookieUtils.setRefreshTokenToHttpOnlyCookie(response, refreshToken);
 
       // Enforce session limits
-      int activeSessions = refreshTokenRepository.countByUserId(existingUser.getId());
-      if (activeSessions > MAX_SESSIONS_PER_USER) {
-        refreshTokenRepository.findFirstByUserIdOrderByCreatedAtAsc(existingUser.getId())
-            .ifPresent(refreshTokenRepository::delete);
+      List<RefreshTokenModel> userSessions = refreshTokenRepository.findByUserIdOrderByCreatedAtDesc(
+          user.getId());
+
+      if (userSessions.size() > MAX_SESSIONS_PER_USER) {
+        // Удаляем старые сессии, оставляя только MAX_SESSIONS_PER_USER новых
+        List<RefreshTokenModel> sessionsToDelete = userSessions.subList(MAX_SESSIONS_PER_USER,
+            userSessions.size());
+
+        refreshTokenRepository.deleteAll(sessionsToDelete);
+
+        log.info("Removed {} old sessions for user ID: {}", sessionsToDelete.size(), user.getId());
       }
     }
 
-    log.info("User {} authenticated with provider {}", existingUser.getUsername(), registrationId);
+    log.info("OAuth2 authentication successful for user: {} via provider: {}",
+        existingUser.getUsername(), registrationId);
     return oAuth2User;
   }
 }

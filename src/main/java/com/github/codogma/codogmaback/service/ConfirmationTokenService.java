@@ -2,7 +2,7 @@ package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.model.ConfirmationToken;
 import com.github.codogma.codogmaback.repository.ConfirmationTokenRepository;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,8 +18,8 @@ public class ConfirmationTokenService {
 
   @Transactional
   public void saveConfirmationToken(ConfirmationToken token) {
-    token.setCreatedAt(LocalDateTime.now());
-    token.setExpiresAt(LocalDateTime.now().plusHours(24));
+    token.setCreatedAt(Instant.now());
+    token.setExpiresAt(Instant.now().plusSeconds(24 * 3600L));
     tokenRepository.save(token);
   }
 
@@ -31,7 +31,7 @@ public class ConfirmationTokenService {
   public void setConfirmedAt(String token) {
     ConfirmationToken confirmationToken = tokenRepository.findByToken(token)
         .orElseThrow(() -> new IllegalStateException("Token not found"));
-    confirmationToken.setConfirmedAt(LocalDateTime.now());
+    confirmationToken.setConfirmedAt(Instant.now());
     tokenRepository.save(confirmationToken);
   }
 }

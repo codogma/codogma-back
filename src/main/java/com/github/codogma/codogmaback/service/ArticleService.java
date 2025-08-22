@@ -48,7 +48,8 @@ import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpeci
 import com.github.codogma.codogmaback.util.KeywordExtractor;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import jakarta.persistence.EntityManager;
-import java.time.LocalDateTime;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -219,7 +220,7 @@ public class ArticleService {
     if (userModel != null) {
       ArticleView existingView = articleViewRepository.findByUserAndArticle(userModel, articleModel)
           .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
-      existingView.setUpdatedAt(LocalDateTime.now());
+      existingView.setUpdatedAt(Instant.now());
       articleViewRepository.save(existingView);
     }
   }
@@ -229,6 +230,7 @@ public class ArticleService {
   public List<GetArticle> getRecommendationsForArticle(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
+    Instant sixMonthsAgo = Instant.now().minus(Duration.ofDays(180));
     List<Long> categoryNames = article.getCategories().stream().map(CategoryModel::getId).toList();
     Set<String> tagNames = article.getTags().stream().map(TagModel::getName)
         .collect(Collectors.toSet());
@@ -242,9 +244,9 @@ public class ArticleService {
           BooleanPredicateClausesStep<?> bool = f.bool()
               .must(f.match().field("status").matching(Status.PUBLISHED))
               .mustNot(f.match().field("id").matching(articleId))
-              .must(f.range().field("createdAt").atLeast(LocalDateTime.now().minusMonths(6)))
-              .should(f.simpleQueryString().fields("title", "tags.name").matching(combinedKeywords)
-                  .defaultOperator(BooleanOperator.OR).boost(1.0f))
+              .must(f.range().field("createdAt").atLeast(sixMonthsAgo)).should(
+                  f.simpleQueryString().fields("title", "tags.name").matching(combinedKeywords)
+                      .defaultOperator(BooleanOperator.OR).boost(1.0f))
               .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(10.0f))
               .should(f.match().field("content").matching(article.getContent()).boost(0.00002f));
           if (article.getLikeCount() != null) {

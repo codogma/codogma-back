@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RefreshTokenRepository extends JpaRepository<RefreshTokenModel, UUID> {
 
-  Optional<RefreshTokenModel> findByTokenHash(String tokenHash);
+  Optional<RefreshTokenModel> findByJti(String jti);
 
   List<RefreshTokenModel> findAllByUserUsernameAndDeviceId(String username, String deviceId);
 
@@ -25,5 +25,5 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshTokenModel,
 
   int countByUserId(Long userId);
 
-  Optional<RefreshTokenModel> findFirstByUserIdOrderByCreatedAtAsc(Long userId);
+  List<RefreshTokenModel> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

@@ -3,6 +3,7 @@ package com.github.codogma.codogmaback.exception;
 import com.github.codogma.codogmaback.util.LocalizationUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +12,10 @@ import org.springframework.stereotype.Component;
 public class ExceptionFactory {
 
   private final LocalizationUtil localizationUtil;
+
+  public IncorrectPasswordException incorrectPassword() {
+    return new IncorrectPasswordException(localizationUtil.getMessage("auth.bad.credentials"));
+  }
 
   public UserAlreadyExistsException userAlreadyExists() {
     return new UserAlreadyExistsException(localizationUtil.getMessage("auth.user.already.exists"));
@@ -21,12 +26,28 @@ public class ExceptionFactory {
         localizationUtil.getMessage("auth.email.already.confirmed"));
   }
 
-  public InvalidTokenException invalidToken() {
-    return new InvalidTokenException(localizationUtil.getMessage("auth.invalid.token"));
+  public InvalidRefreshTokenException invalidToken() {
+    return new InvalidRefreshTokenException(localizationUtil.getMessage("auth.invalid.token"));
   }
 
-  public TokenExpiredException tokenExpired() {
-    return new TokenExpiredException(localizationUtil.getMessage("auth.token.expired"));
+  public InsufficientAuthenticationException insufficientAuthentication() {
+    return new InsufficientAuthenticationException(
+        localizationUtil.getMessage("auth.insufficient"));
+  }
+
+  public AccessTokenExpiredException accessTokenExpired() {
+    return new AccessTokenExpiredException(
+        localizationUtil.getMessage("auth.access.token.expired"));
+  }
+
+  public ConfirmationTokenExpiredException confirmationTokenExpired() {
+    return new ConfirmationTokenExpiredException(
+        localizationUtil.getMessage("auth.confirmation.token.expired"));
+  }
+
+  public RefreshTokenExpiredException refreshTokenExpired() {
+    return new RefreshTokenExpiredException(
+        localizationUtil.getMessage("auth.refresh.token.expired"));
   }
 
   public UsernameOrEmailNotFoundException usernameOrEmailNotFound() {

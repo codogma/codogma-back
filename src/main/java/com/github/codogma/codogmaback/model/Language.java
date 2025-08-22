@@ -14,13 +14,13 @@ public enum Language {
   private final String code;
 
   @JsonCreator
-  public static Language fromCode(String code) {
-    return Stream.of(values()).filter(lang -> lang != null && lang.getCode().equalsIgnoreCase(code))
+  public static Language fromCode(final String code) {
+    return Stream.of(Language.values()).filter(lang -> null != lang && lang.code.equalsIgnoreCase(code))
         .findFirst().orElse(null);
   }
 
   @JsonValue
   public String getCode() {
-    return code;
+    return this.code;
   }
 }

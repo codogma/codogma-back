@@ -1,9 +1,13 @@
 package com.github.codogma.codogmaback.interceptor;
 
 import com.github.codogma.codogmaback.security.JwtProvider;
+import com.github.codogma.codogmaback.service.DeviceAwareService;
+import com.github.codogma.codogmaback.service.TokenRevocationService;
 import com.github.codogma.codogmaback.util.CookieUtils;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.lang.NonNull;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -17,17 +21,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
-import com.github.codogma.codogmaback.service.DeviceAwareService;
-import com.github.codogma.codogmaback.service.TokenRevocationService;
-import io.jsonwebtoken.Claims;
-
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
-  @org.springframework.beans.factory.annotation.Value("${spring.security.jwt.device-claim-name}")
+  @Value("${spring.security.jwt.device-claim-name}")
   private String deviceClaimName;
 
   private final JwtProvider jwtProvider;
@@ -60,26 +60,26 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
       }
 
       // Если пользователь не аутентифицирован, пытаемся извлечь токен
-      String token = cookieUtils.extractAccessToken(accessor);
-      if (token == null || token.trim().isEmpty()) {
-        log.error("Missing authentication token for destination: {}", destination);
-        throw new AuthenticationCredentialsNotFoundException("Missing authentication token");
+      String accessToken = cookieUtils.extractAccessToken(accessor);
+      if (accessToken == null || accessToken.trim().isEmpty()) {
+        log.error("Missing authentication accessToken for destination: {}", destination);
+        throw new AuthenticationCredentialsNotFoundException("Missing authentication accessToken");
       }
 
-      String username = jwtProvider.extractUsername(token);
+      String username = jwtProvider.extractUsername(accessToken);
       UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-      if (!jwtProvider.isTokenValid(token)) {
-        log.error("Invalid authentication token for destination: {}", destination);
-        throw new BadCredentialsException("Invalid authentication token");
+      if (!jwtProvider.isTokenValid(accessToken)) {
+        log.error("Invalid authentication accessToken for destination: {}", destination);
+        throw new BadCredentialsException("Invalid authentication accessToken");
       }
 
-      Claims claims = jwtProvider.extractAllClaims(token);
+      Claims claims = jwtProvider.extractAccessTokenClaims(accessToken);
 
       String jti = claims.getId();
       if (tokenRevocationService.isTokenRevoked(jti)) {
-        log.error("Revoked authentication token for destination: {}", destination);
-        throw new BadCredentialsException("Revoked authentication token");
+        log.error("Revoked authentication accessToken for destination: {}", destination);
+        throw new BadCredentialsException("Revoked authentication accessToken");
       }
 
       String tokenDeviceId = claims.get(deviceClaimName, String.class);

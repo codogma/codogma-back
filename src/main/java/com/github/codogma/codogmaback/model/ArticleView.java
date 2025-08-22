@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -26,8 +26,8 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "article_views", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "article_id"})})
+@Table(name = "article_views", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id",
+    "article_id"}))
 public class ArticleView {
 
   @Id
@@ -43,8 +43,8 @@ public class ArticleView {
   private ArticleModel article;
   @CreationTimestamp
   @Column(nullable = false, updatable = false, name = "created_at")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   @UpdateTimestamp
   @Column(name = "updated_at")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

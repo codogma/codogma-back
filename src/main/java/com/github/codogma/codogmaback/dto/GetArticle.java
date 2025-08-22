@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.github.codogma.codogmaback.model.Language;
 import com.github.codogma.codogmaback.model.Status;
 import io.swagger.v3.oas.annotations.media.Schema;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -55,7 +55,7 @@ public class GetArticle {
   @Schema(description = "Compilations associated with the article")
   private List<GetCompilation> compilations;
   @Schema(description = "Date and time of the article creation", example = "2022-01-01T00:00:00.000Z")
-  private LocalDateTime createdAt;
+  private Instant createdAt;
   @Schema(description = "Date and time of the article update", example = "2022-01-01T01:00:00.000Z")
-  private LocalDateTime updatedAt;
+  private Instant updatedAt;
 }

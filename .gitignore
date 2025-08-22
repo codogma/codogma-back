@@ -33,3 +33,9 @@ build/
 ### PVS-Studio ###
 .PVS-Studio/
 .qodo
+
+### Tomcat Logs ###
+/tomcat-logs/
+
+### FastRequest ###
+/.fastRequest/

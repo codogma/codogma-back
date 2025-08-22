@@ -32,6 +32,8 @@ public class RefreshTokenModel {
   @Column(nullable = false)
   @GeneratedValue(strategy = GenerationType.UUID)
   private UUID id;
+  @Column(nullable = false, unique = true, length = 36)
+  private String jti;
   @Column(nullable = false, unique = true, length = 512)
   private String tokenHash;
   @ManyToOne(fetch = FetchType.LAZY)
@@ -42,11 +44,9 @@ public class RefreshTokenModel {
   @Column(nullable = false)
   private Instant expiresAt;
   @Column(nullable = false)
-  private boolean revoked = false;
+  private boolean revoked;
   @CreationTimestamp
   private Instant createdAt;
   @UpdateTimestamp
   private Instant updatedAt;
 }
-
-

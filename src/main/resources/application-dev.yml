@@ -3,6 +3,13 @@ cors:
     - "http://*.${DOMAIN_NAME}"
     - "http://${DOMAIN_NAME}"
 
+server:
+  tomcat:
+    basedir: "tomcat-logs"
+    accesslog:
+      enabled: true
+      pattern: "%t %a %r %s (%D microseconds)"
+
 logging:
   level:
     root: INFO
@@ -12,3 +19,7 @@ logging:
         web: DEBUG
         cache: DEBUG
       ehcache: DEBUG
+      apache:
+        coyote: WARN
+        catalina:
+          connector: DEBUG

@@ -9,21 +9,19 @@ import org.springframework.stereotype.Component;
 public class GithubOAuth2ProviderHandler implements OAuth2ProviderHandler {
 
   @Override
-  public boolean supports(String registrationId) {
+  public boolean supports(final String registrationId) {
     return "github".equals(registrationId);
   }
 
   @Override
-  public UserModel processOAuth2User(OAuth2User oAuth2User) {
-    String email = oAuth2User.getAttribute("email");
-    Integer githubId = oAuth2User.getAttribute("id");
-    String username = oAuth2User.getAttribute("login");
+  public UserModel processOAuth2User(final OAuth2User oAuth2User) {
+    final Integer githubId = oAuth2User.getAttribute("id");
+    final String username = oAuth2User.getAttribute("login");
+    final String email = oAuth2User.getAttribute("email");
 
-    return UserModel.builder()
-        .githubId(githubId)
-        .username(username)
-        .email(email)
-        .role(Role.ROLE_USER)
-        .build();
+    // TODO: реализовать обработку загрузки аватара
+
+    return UserModel.builder().githubId(githubId).username(username).email(email)
+        .role(Role.ROLE_USER).build();
   }
 }

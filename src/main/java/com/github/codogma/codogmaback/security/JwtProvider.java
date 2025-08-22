@@ -1,7 +1,10 @@
 package com.github.codogma.codogmaback.security;
 
+import com.github.codogma.codogmaback.exception.AccessTokenExpiredException;
+import com.github.codogma.codogmaback.exception.RefreshTokenExpiredException;
 import com.github.codogma.codogmaback.model.UserModel;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -30,9 +33,9 @@ public class JwtProvider {
   @Value("${spring.security.jwt.audience}")
   private String audience;
   @Value("${spring.security.jwt.access-expiration}")
-  private int accessExpiration;
+  private long accessExpiration;
   @Value("${spring.security.jwt.refresh-expiration}")
-  private int refreshExpiration;
+  private long refreshExpiration;
 
   private final SecureRandom secureRandom = new SecureRandom();
 
@@ -49,7 +52,7 @@ public class JwtProvider {
     Instant now = Instant.now();
     return Jwts.builder().header().type("JWT").add("alg", alg).add("kid", kid).and()
         .subject(userModel.getUsername()).issuer(issuer).audience().add(audience).and()
-        .issuedAt(Date.from(now)).expiration(Date.from(now.plusMillis(accessExpiration)))
+        .issuedAt(Date.from(now)).expiration(Date.from(now.plusSeconds(accessExpiration)))
         .id(UUID.randomUUID().toString()).claim("role", userModel.getRole().name())
         .claim(deviceClaimName, deviceId).claim("rnd", secureRandom.nextInt())
         .signWith(getSignInKey(), Jwts.SIG.HS512).compact();
@@ -58,7 +61,7 @@ public class JwtProvider {
   public String generateRefreshToken(UserModel userModel, String deviceId) {
     Instant now = Instant.now();
     return Jwts.builder().subject(userModel.getUsername()).issuer(issuer).audience().add(audience)
-        .and().issuedAt(Date.from(now)).expiration(Date.from(now.plusMillis(refreshExpiration)))
+        .and().issuedAt(Date.from(now)).expiration(Date.from(now.plusSeconds(refreshExpiration)))
         .id(UUID.randomUUID().toString()).claim(deviceClaimName, deviceId)
         .claim("purpose", "refresh").signWith(getSignInKey(), Jwts.SIG.HS512).compact();
   }
@@ -72,10 +75,27 @@ public class JwtProvider {
     return claims.getExpiration().after(new Date());
   }
 
-  public Claims extractAllClaims(String token) {
+  public Claims extractAccessTokenClaims(String token) {
+    try {
+      return Jwts.parser().verifyWith(getSignInKey()).requireIssuer(issuer)
+          .requireAudience(audience).build().parseSignedClaims(token).getPayload();
+    } catch (ExpiredJwtException e) {
+      throw new AccessTokenExpiredException(e.getMessage());
+    }
+  }
+
+  public Claims extractRefreshTokenClaims(String token) {
+    try {
+      return Jwts.parser().verifyWith(getSignInKey()).requireIssuer(issuer)
+          .requireAudience(audience).build().parseSignedClaims(token).getPayload();
+    } catch (ExpiredJwtException e) {
+      throw new RefreshTokenExpiredException(e.getMessage());
+    }
+  }
+
+  private Claims extractAllClaims(String token) {
     return Jwts.parser().verifyWith(getSignInKey()).requireIssuer(issuer).requireAudience(audience)
         .build().parseSignedClaims(token).getPayload();
-
   }
 
   private SecretKey getSignInKey() {

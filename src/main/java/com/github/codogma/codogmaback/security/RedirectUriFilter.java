@@ -1,36 +1,48 @@
 package com.github.codogma.codogmaback.security;
 
+import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.lang.NonNull;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.GenericFilterBean;
+import org.springframework.web.filter.OncePerRequestFilter;
 
 @Slf4j
 @Component
-public class RedirectUriFilter extends GenericFilterBean {
+public class RedirectUriFilter extends OncePerRequestFilter {
+
+  private final ExceptionFactory exceptionFactory;
+
+  public RedirectUriFilter(ExceptionFactory exceptionFactory) {
+    this.exceptionFactory = exceptionFactory;
+  }
 
   @Override
-  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+  public void doFilterInternal(@NonNull HttpServletRequest request,
+      @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
       throws IOException, ServletException {
-    HttpServletRequest httpRequest = (HttpServletRequest) request;
-    String requestURI = httpRequest.getRequestURI();
-    log.warn("Request URI: {}", requestURI);
-    if (requestURI.startsWith("/api/oauth2")) {
-      String redirectUri = httpRequest.getParameter("redirect_success_uri");
-      if (redirectUri != null) {
-        log.info("Extracted redirect_success_uri: {}", redirectUri);
-        httpRequest.getSession().setAttribute("redirect_success_uri", redirectUri);
-      } else {
-        log.info("No redirect_success_uri parameter found");
+    try {
+      String requestURI = request.getRequestURI();
+      log.warn("Request URI: {}", requestURI);
+      if (requestURI.startsWith("/api/oauth2")) {
+        String redirectUri = request.getParameter("redirect_success_uri");
+        if (redirectUri != null) {
+          log.info("Extracted redirect_success_uri: {}", redirectUri);
+          request.getSession().setAttribute("redirect_success_uri", redirectUri);
+        } else {
+          log.info("No redirect_success_uri parameter found");
+        }
       }
+      filterChain.doFilter(request, response);
+    } catch (InsufficientAuthenticationException ex) {
+      log.error("Insufficient authentication exception caught", ex);
+      response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
+          exceptionFactory.insufficientAuthentication().getMessage());
     }
-    //TODO обработать исключения InsufficientAuthenticationException (обработчик был добавлен в GlobalExceptionHandler, но не работает)
-    chain.doFilter(request, response);
   }
 }
-

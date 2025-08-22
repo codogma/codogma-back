@@ -16,19 +16,17 @@ public class TokenRevocationService {
   private final RefreshTokenRepository refreshTokenRepository;
 
   public void revokeToken(String jti) {
-    refreshTokenRepository.findByTokenHash(jti)
-        .ifPresent(token -> {
-          token.setRevoked(true);
-          refreshTokenRepository.save(token);
-          cacheRevokedToken(jti, true);
-        });
+    refreshTokenRepository.findByJti(jti).ifPresent(token -> {
+      token.setRevoked(true);
+      refreshTokenRepository.save(token);
+      cacheRevokedToken(jti, true);
+      log.info("Token revoked: {}", jti.substring(0, 8) + "...");
+    });
   }
 
   @Cacheable(value = "revokedTokens", key = "#jti", cacheManager = "tokenCacheManager")
   public boolean isTokenRevoked(String jti) {
-    return refreshTokenRepository.findByTokenHash(jti)
-        .map(RefreshTokenModel::isRevoked)
-        .orElse(false);
+    return refreshTokenRepository.findByJti(jti).map(RefreshTokenModel::isRevoked).orElse(false);
   }
 
   @CachePut(value = "revokedTokens", key = "#jti", cacheManager = "tokenCacheManager")

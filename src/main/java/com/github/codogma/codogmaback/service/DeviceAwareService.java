@@ -4,7 +4,6 @@ import com.github.codogma.codogmaback.exception.DeviceMismatchException;
 import com.github.codogma.codogmaback.repository.RefreshTokenRepository;
 import com.github.codogma.codogmaback.util.CookieUtils;
 import io.jsonwebtoken.Claims;
-import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
@@ -12,6 +11,7 @@ import java.security.MessageDigest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.token.Sha512DigestUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,6 +52,7 @@ public class DeviceAwareService {
     // Составные части идентификатора устройства
     String userAgent = request.getHeader("User-Agent");
     String timeZone = request.getHeader("Time-Zone");
+    log.info("User-Agent: {}, Time-Zone: {}", userAgent, timeZone);
 
     // Нормализация данных
     String normalizedUserAgent = userAgent != null ? userAgent : "";
@@ -66,6 +67,7 @@ public class DeviceAwareService {
   public String generateDeviceId(StompHeaderAccessor accessor) {
     String userAgent = accessor.getFirstNativeHeader("User-Agent");
     String timeZone = accessor.getFirstNativeHeader("Time-Zone");
+    log.info("User-Agent: {}, Time-Zone: {}", userAgent, timeZone);
 
     String normalizedUserAgent = userAgent != null ? userAgent : "";
     String normalizedTimeZone = timeZone != null ? timeZone : "";
