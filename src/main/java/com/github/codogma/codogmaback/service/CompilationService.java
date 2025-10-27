@@ -1,17 +1,17 @@
 package com.github.codogma.codogmaback.service;
 
-import com.github.codogma.codogmaback.dto.CreateCompilation;
-import com.github.codogma.codogmaback.dto.GetArticle;
+import com.github.codogma.codogmaback.dto.CreateCompilationDTO;
+import com.github.codogma.codogmaback.dto.GetArticleDTO;
 import com.github.codogma.codogmaback.dto.GetCompilation;
 import com.github.codogma.codogmaback.dto.GetImageWithPalette;
-import com.github.codogma.codogmaback.dto.UpdateCompilation;
+import com.github.codogma.codogmaback.dto.UpdateCompilationDTO;
 import com.github.codogma.codogmaback.exception.BookmarkAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.CompilationNotFoundException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.model.ArticleImageModel;
 import com.github.codogma.codogmaback.model.ArticleModel;
 import com.github.codogma.codogmaback.model.BookmarkModel;
-import com.github.codogma.codogmaback.model.CompilationArticle;
+import com.github.codogma.codogmaback.model.CompilationArticleModel;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.Status;
 import com.github.codogma.codogmaback.model.UserModel;
@@ -101,7 +101,7 @@ public class CompilationService {
 
   @Transactional
   @CacheEvict(cacheNames = {"compilations", "compilationsByTitle"}, allEntries = true)
-  public GetCompilation createCompilation(CreateCompilation createCompilation,
+  public GetCompilation createCompilation(CreateCompilationDTO createCompilation,
       UserModel userModel) {
     CompilationModel compilation = CompilationModel.builder().title(createCompilation.getTitle())
         .description(createCompilation.getDescription()).user(userModel).build();
@@ -115,7 +115,8 @@ public class CompilationService {
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "compilations",
       "compilationsByTitle"}, allEntries = true),
       @CacheEvict(value = "compilationById", key = "{#compilationId, #userModel.id}")})
-  public GetCompilation updateCompilation(Long compilationId, UpdateCompilation updateCompilation,
+  public GetCompilation updateCompilation(Long compilationId,
+      UpdateCompilationDTO updateCompilation,
       UserModel userModel) {
     CompilationModel compilation = compilationRepository.findById(compilationId)
         .orElseThrow(() -> new CompilationNotFoundException("Compilation not found"));
@@ -125,21 +126,22 @@ public class CompilationService {
     List<Long> articleIds = updateCompilation.getArticleIds();
     if (articleIds != null) {
       // Создаем мапу существующих связей для быстрого доступа по articleId
-      Map<Long, CompilationArticle> existingLinks = compilation.getCompilationArticles().stream()
+      Map<Long, CompilationArticleModel> existingLinks = compilation.getCompilationArticles()
+          .stream()
           .collect(Collectors.toMap(compilationArticle -> compilationArticle.getArticle().getId(),
               compilationArticle -> compilationArticle));
 
-      List<CompilationArticle> updatedLinks = new ArrayList<>();
+      List<CompilationArticleModel> updatedLinks = new ArrayList<>();
       Set<Long> processedArticleIds = new HashSet<>();
 
       // Обрабатываем список articleIds, обновляем позиции или создаем новые связи
       for (int position = 0; position < articleIds.size(); position++) {
         Long articleId = articleIds.get(position);
-        CompilationArticle link = existingLinks.get(articleId);
+        CompilationArticleModel link = existingLinks.get(articleId);
         if (link == null) {
           ArticleModel article = articleRepository.findById(articleId)
               .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-          link = CompilationArticle.builder().compilation(compilation).article(article)
+          link = CompilationArticleModel.builder().compilation(compilation).article(article)
               .position(position).build();
         } else {
           link.setPosition(position);
@@ -210,7 +212,7 @@ public class CompilationService {
         compilation.getUser().getFirstName() != null || compilation.getUser().getLastName() != null
             ? compilation.getUser().getFirstName() + " " + compilation.getUser().getLastName()
             : compilation.getUser().getUsername();
-    List<GetArticle> articles = compilation.getCompilationArticles().stream()
+    List<GetArticleDTO> articles = compilation.getCompilationArticles().stream()
         .filter(compilationArticle -> {
           ArticleModel article = compilationArticle.getArticle();
           return userModel != null ? article.getUser().getId().equals(userModel.getId())
@@ -223,7 +225,7 @@ public class CompilationService {
           GetImageWithPalette image = articleImage == null ? null
               : GetImageWithPalette.builder().imageUrl(articleImage.getImageUrl())
                   .filename(articleImage.getFilename()).build();
-          return GetArticle.builder().id(article.getId()).title(article.getTitle()).image(image)
+          return GetArticleDTO.builder().id(article.getId()).title(article.getTitle()).image(image)
               .build();
         }).toList();
     return GetCompilation.builder().id(compilation.getId()).isBookmarked(existed)

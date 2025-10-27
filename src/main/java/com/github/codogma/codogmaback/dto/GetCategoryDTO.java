@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(name = "Get Category")
 @JsonInclude(Include.NON_NULL)
-public class GetCategory {
+public class GetCategoryDTO {
 
   @Schema(description = "ID of the category", example = "1")
   private Long id;
@@ -26,9 +26,9 @@ public class GetCategory {
   @Schema(description = "Description of the category", example = "Category about technology")
   private String description;
   @Schema(description = "Icon of the category")
-  private GetImage icon;
+  private GetImageDTO icon;
   @Schema(description = "Image of the category")
   private GetImageWithPalette image;
   @Schema(description = "Tags associated with the category articles")
-  private List<GetTag> tags;
+  private List<GetTagDTO> tags;
 }

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Create Notification")
-public class CreateNotification {
+public class CreateNotificationDTO {
 
   @NotEmpty(message = "Title cannot be empty")
   @Schema(description = "Title of the notification", example = "{ \"en\": \"System Update\", \"ru\": \"Системное обновление\" }", requiredMode = RequiredMode.REQUIRED)

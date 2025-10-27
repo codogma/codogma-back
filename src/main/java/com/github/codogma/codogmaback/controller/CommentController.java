@@ -1,8 +1,8 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.CreateComment;
+import com.github.codogma.codogmaback.dto.CreateCommentDTO;
 import com.github.codogma.codogmaback.dto.GetComment;
-import com.github.codogma.codogmaback.dto.UpdateComment;
+import com.github.codogma.codogmaback.dto.UpdateCommentDTO;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.CommentService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -61,7 +61,8 @@ public class CommentController {
   @PostMapping
   @Operation(summary = "Add a new comment")
   @PreAuthorize("isAuthenticated()")
-  public ResponseEntity<GetComment> createComment(@Valid @RequestBody CreateComment createComment,
+  public ResponseEntity<GetComment> createComment(
+      @Valid @RequestBody CreateCommentDTO createComment,
       @AuthenticationPrincipal UserModel userModel) {
     GetComment comment = commentService.createComment(createComment, userModel);
     return new ResponseEntity<>(comment, HttpStatus.CREATED);
@@ -85,7 +86,7 @@ public class CommentController {
   @Operation(summary = "Update the comment")
   @PreAuthorize("isAuthenticated()")
   public GetComment updateComment(@PathVariable Long commentId,
-      @Valid @RequestBody UpdateComment updateComment,
+      @Valid @RequestBody UpdateCommentDTO updateComment,
       @AuthenticationPrincipal UserModel userModel) {
     return commentService.updateComment(commentId, updateComment, userModel);
   }

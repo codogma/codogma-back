@@ -16,7 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Update Compilation")
-public class UpdateCompilation {
+public class UpdateCompilationDTO {
 
   @Schema(description = "Title of the compilation", example = "Java Basics")
   private String title;

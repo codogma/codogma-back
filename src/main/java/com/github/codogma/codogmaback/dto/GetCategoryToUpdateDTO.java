@@ -16,12 +16,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(name = "Get Category to update")
 @JsonInclude(Include.NON_NULL)
-public class GetCategoryToUpdate {
+public class GetCategoryToUpdateDTO {
 
   @Schema(description = "Name of the category", example = "{ \"en\": \"Programming\", \"ru\": \"Программирование\" }")
   private Map<Language, String> name;
   @Schema(description = "Icon of the category")
-  private GetImage icon;
+  private GetImageDTO icon;
   @Schema(description = "Image of the category")
   private GetImageWithPalette image;
   @Schema(description = "Description of the category", example = "{ \"en\": \"Articles about technology\", \"ru\": \"Статьи о технологиях\" }")

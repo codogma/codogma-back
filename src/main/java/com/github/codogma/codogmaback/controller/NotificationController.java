@@ -1,9 +1,9 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.CreateNotification;
-import com.github.codogma.codogmaback.dto.GetNotification;
-import com.github.codogma.codogmaback.dto.GetSystemNotification;
-import com.github.codogma.codogmaback.dto.UpdateNotification;
+import com.github.codogma.codogmaback.dto.CreateNotificationDTO;
+import com.github.codogma.codogmaback.dto.GetNotificationDTO;
+import com.github.codogma.codogmaback.dto.GetSystemNotificationDTO;
+import com.github.codogma.codogmaback.dto.UpdateNotificationDTO;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.NotificationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,13 +44,13 @@ public class NotificationController {
       @Parameter(name = "page", description = "Page number to retrieve"),
       @Parameter(name = "size", description = "Number of notifications per page"),
       @Parameter(name = "isRead", description = "Filter by read status")})
-  public ResponseEntity<Page<GetNotification>> getNotifications(
+  public ResponseEntity<Page<GetNotificationDTO>> getNotifications(
       @RequestParam(defaultValue = "desc") String order,
       @RequestParam(defaultValue = "createdAt") String sort,
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
       @RequestParam(required = false) Boolean isRead,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetNotification> notifications = notificationService.getNotifications(order, sort, page,
+    Page<GetNotificationDTO> notifications = notificationService.getNotifications(order, sort, page,
         size, isRead, userModel);
     return ResponseEntity.ok(notifications);
   }
@@ -58,9 +58,9 @@ public class NotificationController {
   @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  public ResponseEntity<GetSystemNotification> getSystemNotificationById(@PathVariable Long id,
+  public ResponseEntity<GetSystemNotificationDTO> getSystemNotificationById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetSystemNotification article = notificationService.getSystemNotificationById(id, userModel);
+    GetSystemNotificationDTO article = notificationService.getSystemNotificationById(id, userModel);
     return ResponseEntity.ok(article);
   }
 
@@ -68,7 +68,7 @@ public class NotificationController {
   @Operation(summary = "Create the system notification")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> createSystemNotification(
-      @Valid @RequestBody CreateNotification createNotification) {
+      @Valid @RequestBody CreateNotificationDTO createNotification) {
     notificationService.createNotification(createNotification);
     return ResponseEntity.noContent().build();
   }
@@ -77,16 +77,16 @@ public class NotificationController {
   @Operation(summary = "Update system notification by id")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
   public ResponseEntity<Void> updateSystemNotification(@PathVariable Long id,
-      @Valid @RequestBody UpdateNotification updateNotification) {
+      @Valid @RequestBody UpdateNotificationDTO updateNotification) {
     notificationService.updateNotification(id, updateNotification);
     return ResponseEntity.noContent().build();
   }
 
   @PatchMapping("/{id:\\d+}/read")
   @Operation(summary = "Mark the notification as read by id")
-  public ResponseEntity<GetNotification> markAsRead(@PathVariable Long id,
+  public ResponseEntity<GetNotificationDTO> markAsRead(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetNotification readNotification = notificationService.markAsRead(id, userModel);
+    GetNotificationDTO readNotification = notificationService.markAsRead(id, userModel);
     return ResponseEntity.ok(readNotification);
   }
 

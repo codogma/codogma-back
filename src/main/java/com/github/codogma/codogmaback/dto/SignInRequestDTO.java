@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Authentication Request")
-public class SignInRequest {
+public class SignInRequestDTO {
 
   @NotBlank(message = "Username or Email cannot be empty")
   @Size(min = 3, max = 50, message = "Username or Email must be between 3 and 50 characters")

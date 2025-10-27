@@ -2,10 +2,14 @@ spring:
   application:
     name: codogma-back
   datasource:
-    url: ${DATASOURCE_URL}
-    username: ${DATASOURCE_USERNAME}
-    password: ${DATASOURCE_PASSWORD}
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  data:
+    redis:
+      host: ${SPRING_DATA_REDIS_HOST}
+      port: ${SPRING_DATA_REDIS_PORT}
   jpa:
     hibernate:
       ddl-auto: update
@@ -25,6 +29,11 @@ spring:
             type: lucene
             analysis:
               configurer: class:com.github.codogma.codogmaback.config.SearchAnalysisConfigurer
+            indexing:
+              synchronization:
+                strategy: async
+            lucene:
+              refresh_interval: 3000
   servlet:
     multipart:
       max-file-size: 10MB
@@ -48,7 +57,7 @@ spring:
         debug: true
   security:
     jwt:
-      secret-key: ${JWT_SECRET_KEY}
+      secret-key: ${SPRING_JWT_SECRET_KEY}
       domain: ${DOMAIN_NAME}
       alg: HS512
       kid: ${KID}
@@ -59,8 +68,8 @@ spring:
       audience: codogma-back
       access-token-name: access_token
       refresh-token-name: refresh_token
-      access-expiration: 900
-      refresh-expiration: 604800
+      access-expiration: ${SPRING_SECURITY_JWT_ACCESS_EXPIRATION}
+      refresh-expiration: ${SPRING_SECURITY_JWT_REFRESH_EXPIRATION}
     oauth2:
       client:
         registration:

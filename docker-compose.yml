@@ -19,6 +19,15 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:8.2.1-alpine3.22
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --save 60 1 --loglevel warning
+
   app:
     image: airatgaliev/codogma-back:latest
     build:
@@ -30,14 +39,17 @@ services:
       - ~/codogma/users/avatars:/app/users/avatars
       - ~/codogma/articles/images:/app/articles/images
       - ~/codogma/categories/images:/app/categories/images
-      - ~/codogma/compilations/images:/app/categories/images
+      - ~/codogma/compilations/images:/app/compilations/images
       - ~/codogma/lucene/indexes:/app/lucene/indexes
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/codogma-back
       SPRING_DATASOURCE_USERNAME: postgres
       SPRING_DATASOURCE_PASSWORD: postgres
-      SECURITY_JWT_SECRET_KEY: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b
-      SECURITY_JWT_EXPIRATION_TIME: 3600000
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_SECURITY_JWT_SECRET_KEY: 3cfa76ef14937c1c0ea519f8fc057a80fcd04a7420f8e8bcd0a7567c272e007b
+      SPRING_SECURITY_JWT_ACCESS_EXPIRATION: 900
+      SPRING_SECURITY_JWT_REFRESH_EXPIRATION: 604800
       user.avatar.upload-dir: /app/users/avatars
       article.image.upload-dir: /app/articles/images
       category.image.upload-dir: /app/categories/images
@@ -45,7 +57,10 @@ services:
       spring.jpa.properties.hibernate.search.backend.directory.root: /app/lucene/indexes
     depends_on:
       - db
+      - redis
 
 volumes:
   postgres-db:
+    driver: local
+  redis-data:
     driver: local

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(name = "Get Notification")
 @JsonInclude(Include.NON_NULL)
-public class GetNotification {
+public class GetNotificationDTO {
 
   @Schema(description = "ID of the notification", example = "1")
   private Long id;

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Update draft article")
-public class UpdateDraftArticle {
+public class UpdateDraftArticleDTO {
 
   @Schema(description = "Language of the article")
   private Language language;

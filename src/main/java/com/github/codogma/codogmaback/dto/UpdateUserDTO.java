@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Update User")
-public class UpdateUser {
+public class UpdateUserDTO {
 
   @Schema(description = "Username of the user", example = "JohnDoe")
   private String username;

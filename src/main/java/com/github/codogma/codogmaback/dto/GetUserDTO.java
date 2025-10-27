@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Schema(name = "Get User")
 @JsonInclude(Include.NON_NULL)
-public class GetUser {
+public class GetUserDTO {
 
   @Schema(description = "ID of the user", example = "1")
   private Long id;
@@ -39,5 +39,5 @@ public class GetUser {
   @Schema(description = "Profile avatar image")
   private String avatarUrl;
   @Schema(description = "List of categories associated with the user")
-  private List<GetCategory> categories;
+  private List<GetCategoryDTO> categories;
 }

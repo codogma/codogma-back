@@ -2,8 +2,6 @@ package com.github.codogma.codogmaback.dto;
 
 import com.github.codogma.codogmaback.model.Language;
 import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.media.Schema.RequiredMode;
-import jakarta.validation.constraints.NotEmpty;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,15 +13,14 @@ import org.springframework.web.multipart.MultipartFile;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "Create Category")
-public class CreateCategory {
+@Schema(name = "Update Category")
+public class UpdateCategoryDTO {
 
-  @NotEmpty(message = "Name cannot be empty")
-  @Schema(description = "Name of the category", example = "{ \"en\": \"Programming\", \"ru\": \"Программирование\" }", requiredMode = RequiredMode.REQUIRED)
+  @Schema(description = "Name of the category", example = "{ \"en\": \"Programming\", \"ru\": \"Программирование\" }")
   private Map<Language, String> name;
-  @Schema(description = "Category's icon", requiredMode = RequiredMode.REQUIRED)
+  @Schema(description = "Category's icon")
   private MultipartFile icon;
-  @Schema(description = "Category's image", requiredMode = RequiredMode.REQUIRED)
+  @Schema(description = "Category's image")
   private MultipartFile image;
   @Schema(description = "Palette of the image")
   private PaletteDTO palette;

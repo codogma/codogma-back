@@ -2,7 +2,7 @@ package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.exception.UserIdNotFoundException;
 import com.github.codogma.codogmaback.model.ArticleModel;
-import com.github.codogma.codogmaback.model.ArticleView;
+import com.github.codogma.codogmaback.model.ArticleViewModel;
 import com.github.codogma.codogmaback.model.CategoryModel;
 import com.github.codogma.codogmaback.model.FavoriteModel;
 import com.github.codogma.codogmaback.model.Status;
@@ -82,7 +82,7 @@ public class ContentBasedRecommender {
       return bool;
     }).sort(f -> f.composite(b -> {
       b.add(f.score().desc());
-      b.add(f.field("likeCount").desc());
+      b.add(f.field("likesCount").desc());
     })).fetchHits(recommendationLimit);
   }
 
@@ -90,7 +90,7 @@ public class ContentBasedRecommender {
     UserProfileVector vector = new UserProfileVector();
 
     // История просмотров
-    List<ArticleView> views = articleViewRepository.findTop20ByUserOrderByUpdatedAtDesc(user);
+    List<ArticleViewModel> views = articleViewRepository.findTop20ByUserOrderByUpdatedAtDesc(user);
     vector.addAllTags(
         views.stream().flatMap(v -> v.getArticle().getTags().stream()).map(TagModel::getId)
             .collect(Collectors.toList()));

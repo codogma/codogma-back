@@ -1,9 +1,9 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.CreateCategory;
-import com.github.codogma.codogmaback.dto.GetCategory;
-import com.github.codogma.codogmaback.dto.GetCategoryToUpdate;
-import com.github.codogma.codogmaback.dto.UpdateCategory;
+import com.github.codogma.codogmaback.dto.CreateCategoryDTO;
+import com.github.codogma.codogmaback.dto.GetCategoryDTO;
+import com.github.codogma.codogmaback.dto.GetCategoryToUpdateDTO;
+import com.github.codogma.codogmaback.dto.UpdateCategoryDTO;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.CategoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,7 +48,8 @@ public class CategoryController {
       @Parameter(name = "size", description = "Number of categories per page"),
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
-  public ResponseEntity<Page<GetCategory>> getCategories(@RequestParam(required = false) String tag,
+  public ResponseEntity<Page<GetCategoryDTO>> getCategories(
+      @RequestParam(required = false) String tag,
       @RequestParam(required = false) String info,
       @RequestParam(required = false) Boolean isFavorite,
       @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size,
@@ -56,29 +57,30 @@ public class CategoryController {
       @RequestParam(defaultValue = "createdAt") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetCategory> categories = categoryService.getCategories(order, sort, page, size, tag, info,
+    Page<GetCategoryDTO> categories = categoryService.getCategories(order, sort, page, size, tag,
+        info,
         isFavorite, userModel);
     return ResponseEntity.ok(categories);
   }
 
   @GetMapping("/list-by-name")
   @Operation(summary = "Get categories by name")
-  public ResponseEntity<List<GetCategory>> getCategoriesByName(@RequestParam String name) {
-    List<GetCategory> categories = categoryService.getCategoriesByNameContaining(name);
+  public ResponseEntity<List<GetCategoryDTO>> getCategoriesByName(@RequestParam String name) {
+    List<GetCategoryDTO> categories = categoryService.getCategoriesByNameContaining(name);
     return ResponseEntity.ok(categories);
   }
 
   @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the category by id")
-  public ResponseEntity<GetCategory> getCategoryById(@PathVariable Long id,
+  public ResponseEntity<GetCategoryDTO> getCategoryById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory categoryById = categoryService.getCategoryById(id, userModel);
+    GetCategoryDTO categoryById = categoryService.getCategoryById(id, userModel);
     return ResponseEntity.ok(categoryById);
   }
 
   @GetMapping("/{id:\\d+}/to-update")
   @Operation(summary = "Get the category by id to update")
-  public ResponseEntity<GetCategoryToUpdate> getCategoryByIdToUpdate(@PathVariable Long id) {
+  public ResponseEntity<GetCategoryToUpdateDTO> getCategoryByIdToUpdate(@PathVariable Long id) {
     return categoryService.getCategoryByIdToUpdate(id)
         .map(category -> new ResponseEntity<>(category, HttpStatus.OK))
         .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -87,20 +89,20 @@ public class CategoryController {
   @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Create a new category")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  public ResponseEntity<GetCategory> createCategory(
-      @Valid @ModelAttribute CreateCategory createCategory,
+  public ResponseEntity<GetCategoryDTO> createCategory(
+      @Valid @ModelAttribute CreateCategoryDTO createCategory,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory createdCategory = categoryService.createCategory(createCategory, userModel);
+    GetCategoryDTO createdCategory = categoryService.createCategory(createCategory, userModel);
     return new ResponseEntity<>(createdCategory, HttpStatus.CREATED);
   }
 
   @PutMapping(value = "/{id:\\d+}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the category")
   @PreAuthorize("hasAuthority('ROLE_ADMIN')")
-  public ResponseEntity<GetCategory> updateCategory(@PathVariable Long id,
-      @Valid @ModelAttribute UpdateCategory updateCategory,
+  public ResponseEntity<GetCategoryDTO> updateCategory(@PathVariable Long id,
+      @Valid @ModelAttribute UpdateCategoryDTO updateCategory,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory updatedCategory = categoryService.updateCategory(id, updateCategory, userModel);
+    GetCategoryDTO updatedCategory = categoryService.updateCategory(id, updateCategory, userModel);
     return ResponseEntity.ok(updatedCategory);
   }
 
@@ -115,18 +117,18 @@ public class CategoryController {
   @PostMapping("/{id:\\d+}/add-to-favorites")
   @Operation(summary = "Add the category to favorites")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<GetCategory> addToFavorites(@PathVariable Long id,
+  public ResponseEntity<GetCategoryDTO> addToFavorites(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory category = categoryService.addToFavorite(id, userModel);
+    GetCategoryDTO category = categoryService.addToFavorite(id, userModel);
     return ResponseEntity.ok(category);
   }
 
   @DeleteMapping("/{id:\\d+}/unfavorite")
   @Operation(summary = "Unfavorite the category")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<GetCategory> unfavorite(@PathVariable Long id,
+  public ResponseEntity<GetCategoryDTO> unfavorite(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetCategory category = categoryService.unfavorite(id, userModel);
+    GetCategoryDTO category = categoryService.unfavorite(id, userModel);
     return ResponseEntity.ok(category);
   }
 }

@@ -1,15 +1,15 @@
 package com.github.codogma.codogmaback.service;
 
 import com.github.codogma.codogmaback.dto.AuthDTO;
-import com.github.codogma.codogmaback.dto.GetUser;
-import com.github.codogma.codogmaback.dto.SignInRequest;
-import com.github.codogma.codogmaback.dto.SignUpRequest;
+import com.github.codogma.codogmaback.dto.GetUserDTO;
+import com.github.codogma.codogmaback.dto.SignInRequestDTO;
+import com.github.codogma.codogmaback.dto.SignUpRequestDTO;
 import com.github.codogma.codogmaback.exception.DeviceMismatchException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.exception.InvalidRefreshTokenException;
 import com.github.codogma.codogmaback.exception.RefreshTokenExpiredException;
 import com.github.codogma.codogmaback.exception.RevokedTokenException;
-import com.github.codogma.codogmaback.model.ConfirmationToken;
+import com.github.codogma.codogmaback.model.ConfirmationTokenModel;
 import com.github.codogma.codogmaback.model.RefreshTokenModel;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.UserModel;
@@ -67,7 +67,7 @@ public class AuthenticationService {
   private static final int MAX_SESSIONS_PER_USER = 5;
 
   @Transactional
-  public GetUser signUp(SignUpRequest signUpRequest, MultipartFile avatar,
+  public GetUserDTO signUp(SignUpRequestDTO signUpRequest, MultipartFile avatar,
       HttpServletRequest request) {
     userRepository.findByUsernameOrEmail(signUpRequest.getUsername(), signUpRequest.getEmail())
         .ifPresent(user -> {
@@ -81,7 +81,8 @@ public class AuthenticationService {
         .map(fileUploadUtil::uploadCategoryImage).ifPresent(user::setAvatarUrl);
     userRepository.save(user);
     String token = UUID.randomUUID().toString();
-    ConfirmationToken confirmationToken = ConfirmationToken.builder().token(token).user(user)
+    ConfirmationTokenModel confirmationToken = ConfirmationTokenModel.builder().token(token)
+        .user(user)
         .createdAt(Instant.now()).expiresAt(Instant.now().plusSeconds(24 * 3600L)).build();
     tokenService.saveConfirmationToken(confirmationToken);
     emailService.sendEmailVerification(user.getEmail(), token, origin);
@@ -90,7 +91,7 @@ public class AuthenticationService {
 
   @Transactional
   public void confirmEmail(String token) {
-    ConfirmationToken confirmationToken = tokenService.getToken(token)
+    ConfirmationTokenModel confirmationToken = tokenService.getToken(token)
         .orElseThrow(exceptionFactory::invalidToken);
     if (confirmationToken.getConfirmedAt() != null) {
       throw exceptionFactory.emailAlreadyConfirmed();
@@ -106,7 +107,7 @@ public class AuthenticationService {
   }
 
   @Transactional
-  public AuthDTO signIn(SignInRequest input, HttpServletRequest request,
+  public AuthDTO signIn(SignInRequestDTO input, HttpServletRequest request,
       HttpServletResponse response) {
     log.info("Attempting to authenticate user: {}", input.getUsernameOrEmail());
     try {
@@ -342,8 +343,8 @@ public class AuthenticationService {
     log.info("User logged out successfully: {}", username);
   }
 
-  private GetUser convertUserModelToCetUserDTO(UserModel userModel) {
-    return GetUser.builder().username(userModel.getUsername()).email(userModel.getEmail())
+  private GetUserDTO convertUserModelToCetUserDTO(UserModel userModel) {
+    return GetUserDTO.builder().username(userModel.getUsername()).email(userModel.getEmail())
         .firstName(userModel.getFirstName()).lastName(userModel.getLastName())
         .bio(userModel.getBio()).role(userModel.getRole()).avatarUrl(userModel.getAvatarUrl())
         .build();

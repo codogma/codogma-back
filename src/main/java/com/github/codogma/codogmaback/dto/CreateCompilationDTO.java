@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Create Compilation")
-public class CreateCompilation {
+public class CreateCompilationDTO {
 
   @Schema(description = "Title of the compilation", example = "Java Basics", requiredMode = RequiredMode.REQUIRED)
   private String title;
