@@ -61,7 +61,13 @@ public class ArticleModel {
   private Language language;
   @Column(nullable = false)
   @GenericField(sortable = Sortable.YES)
-  private Integer likeCount;
+  private Integer commentsCount;
+  @Column(nullable = false)
+  @GenericField(sortable = Sortable.YES)
+  private Integer likesCount;
+  @Column(nullable = false)
+  @GenericField(sortable = Sortable.YES)
+  private Integer viewsCount;
   private Long originalArticleId;
   @FullTextField
   @MultiLanguageField
@@ -93,7 +99,7 @@ public class ArticleModel {
   @Builder.Default
   @IndexedEmbedded
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<CompilationArticle> compilationArticles = new ArrayList<>();
+  private List<CompilationArticleModel> compilationArticles = new ArrayList<>();
   @ToString.Exclude
   @Builder.Default
   @IndexedEmbedded(includePaths = {"id", "name"})
@@ -106,7 +112,7 @@ public class ArticleModel {
   private List<CommentModel> comments = new ArrayList<>();
   @ToString.Exclude
   @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<ArticleView> views = new ArrayList<>();
+  private List<ArticleViewModel> views = new ArrayList<>();
   @CreationTimestamp
   @GenericField(sortable = Sortable.YES)
   @Column(nullable = false, updatable = false, name = "created_at")

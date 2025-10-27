@@ -1,6 +1,6 @@
 package com.github.codogma.codogmaback.service;
 
-import com.github.codogma.codogmaback.dto.CreateArticleImage;
+import com.github.codogma.codogmaback.dto.CreateArticleImageDTO;
 import com.github.codogma.codogmaback.dto.PaletteDTO;
 import com.github.codogma.codogmaback.dto.SwatchDTO;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
@@ -25,7 +25,7 @@ public class ImageUploadService {
   private final FileUploadUtil fileUploadUtil;
 
   @Transactional
-  public String uploadArticleImage(Long articleId, CreateArticleImage createArticleImage) {
+  public String uploadArticleImage(Long articleId, CreateArticleImageDTO createArticleImage) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
 

@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Register User")
-public class SignUpRequest {
+public class SignUpRequestDTO {
 
   @NotBlank(message = "Username cannot be empty")
   @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")

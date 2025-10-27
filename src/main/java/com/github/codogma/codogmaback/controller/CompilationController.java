@@ -1,8 +1,8 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.CreateCompilation;
+import com.github.codogma.codogmaback.dto.CreateCompilationDTO;
 import com.github.codogma.codogmaback.dto.GetCompilation;
-import com.github.codogma.codogmaback.dto.UpdateCompilation;
+import com.github.codogma.codogmaback.dto.UpdateCompilationDTO;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.CompilationService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -83,7 +83,7 @@ public class CompilationController {
   @Operation(summary = "Create a new compilation")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetCompilation> createCompilation(
-      @Valid @ModelAttribute CreateCompilation createCompilation,
+      @Valid @ModelAttribute CreateCompilationDTO createCompilation,
       @AuthenticationPrincipal UserModel userModel) {
     GetCompilation createdCompilation = compilationService.createCompilation(createCompilation,
         userModel);
@@ -94,7 +94,7 @@ public class CompilationController {
   @Operation(summary = "Update the compilation")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
   public ResponseEntity<GetCompilation> updateCompilation(@PathVariable Long id,
-      @Valid @ModelAttribute UpdateCompilation updateCompilation,
+      @Valid @ModelAttribute UpdateCompilationDTO updateCompilation,
       @AuthenticationPrincipal UserModel userModel) {
     GetCompilation updatedCompilation = compilationService.updateCompilation(id, updateCompilation,
         userModel);

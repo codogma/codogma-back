@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Update Article")
-public class UpdateArticle {
+public class UpdateArticleDTO {
 
   @NotNull(message = "Language cannot be null")
   @Schema(description = "Language of the article", example = "en", requiredMode = RequiredMode.REQUIRED)

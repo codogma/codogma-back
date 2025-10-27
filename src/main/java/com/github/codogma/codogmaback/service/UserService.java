@@ -1,9 +1,9 @@
 package com.github.codogma.codogmaback.service;
 
-import com.github.codogma.codogmaback.dto.GetCategory;
-import com.github.codogma.codogmaback.dto.GetImage;
-import com.github.codogma.codogmaback.dto.GetUser;
-import com.github.codogma.codogmaback.dto.UpdateUser;
+import com.github.codogma.codogmaback.dto.GetCategoryDTO;
+import com.github.codogma.codogmaback.dto.GetImageDTO;
+import com.github.codogma.codogmaback.dto.GetUserDTO;
+import com.github.codogma.codogmaback.dto.UpdateUserDTO;
 import com.github.codogma.codogmaback.dto.UserRole;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
@@ -59,7 +59,8 @@ public class UserService {
 
   @Transactional
   @Cacheable(value = "users", key = "{#order, #sort, #page, #size, #categoryId, #targetUsername, #tag, #info, #role, #isSubscriptions, #isSubscribers, #userModel?.id}", condition = "#info == null || #info.isEmpty()", unless = "#result == null || #result.isEmpty()")
-  public Page<GetUser> getUsers(Long categoryId, String targetUsername, UserRole role, String tag,
+  public Page<GetUserDTO> getUsers(Long categoryId, String targetUsername, UserRole role,
+      String tag,
       String info, int page, int size, String sort, String order, Boolean isSubscriptions,
       Boolean isSubscribers, UserModel userModel) {
     UserModel foundUser = null;
@@ -86,7 +87,7 @@ public class UserService {
 
   @Transactional
   @Cacheable(value = "userByUsername", key = "{#username, #userModel?.id}")
-  public GetUser getUserByUsername(String username, UserModel userModel) {
+  public GetUserDTO getUserByUsername(String username, UserModel userModel) {
     UserModel foundUser = userRepository.findByUsername(username)
         .orElseThrow(() -> exceptionFactory.userNotFound(username));
     return convertUserModelToDto(foundUser, userModel);
@@ -97,7 +98,7 @@ public class UserService {
       @CacheEvict(cacheNames = {"users", "articles", "viewedArticles", "recommendations",
           "comments"}, allEntries = true),
       @CacheEvict(value = "userByUsername", key = "{#updateUser.username, #userModel.id}")})
-  public GetUser updateUser(UpdateUser updateUser, UserModel userModel,
+  public GetUserDTO updateUser(UpdateUserDTO updateUser, UserModel userModel,
       BindingResult bindingResult) {
     if (updateUser.getUsername() != null && !updateUser.getUsername()
         .equals(userModel.getUsername())) {
@@ -145,7 +146,7 @@ public class UserService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "users"}, allEntries = true),
       @CacheEvict(value = "userByUsername", key = "{#targetUsername, #subscriber.id}")})
-  public GetUser subscribe(String targetUsername, UserModel subscriber) {
+  public GetUserDTO subscribe(String targetUsername, UserModel subscriber) {
     if (subscriber.getUsername().equals(targetUsername)) {
       throw exceptionFactory.userCannotSubscribeToThemselves();
     }
@@ -165,30 +166,31 @@ public class UserService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "users"}, allEntries = true),
       @CacheEvict(value = "userByUsername", key = "{#targetUsername, #subscriber.id}")})
-  public GetUser unsubscribe(String targetUsername, UserModel subscriber) {
+  public GetUserDTO unsubscribe(String targetUsername, UserModel subscriber) {
     UserModel targetUser = userRepository.findByUsername(targetUsername)
         .orElseThrow(() -> exceptionFactory.targetUserNotFound(targetUsername));
     subscriptionRepository.deleteBySubscriberAndUser(subscriber, targetUser);
     return convertUserModelToDto(targetUser, subscriber);
   }
 
-  private GetUser convertUserModelToDto(UserModel targetUser, UserModel subscriber) {
+  private GetUserDTO convertUserModelToDto(UserModel targetUser, UserModel subscriber) {
     List<CategoryModel> categories = categoryRepository.findCategoriesByUserId(targetUser.getId());
     boolean isSubscribed = subscriptionRepository.existsBySubscriberAndUser(subscriber, targetUser);
     Language interfaceLanguage = localizationContext.getLanguage();
-    return GetUser.builder().id(targetUser.getId()).username(targetUser.getUsername())
+    return GetUserDTO.builder().id(targetUser.getId()).username(targetUser.getUsername())
         .isSubscribed(isSubscribed).email(targetUser.getEmail())
         .firstName(targetUser.getFirstName()).lastName(targetUser.getLastName())
         .shortInfo(targetUser.getShortInfo()).bio(targetUser.getBio())
         .avatarUrl(targetUser.getAvatarUrl()).categories(categories.stream().map(category -> {
           CategoryImageModel categoryIcon = categoryImageRepository.findByCategoryIdAndIsIconIsTrue(
               category.getId()).orElse(null);
-          GetImage icon = categoryIcon == null ? null
-              : GetImage.builder().imageUrl(categoryIcon.getImageUrl())
+          GetImageDTO icon = categoryIcon == null ? null
+              : GetImageDTO.builder().imageUrl(categoryIcon.getImageUrl())
                   .filename(categoryIcon.getFilename()).build();
           String localizedCategoryName = category.getName()
               .getOrDefault(interfaceLanguage, category.getName().get(Language.EN));
-          return GetCategory.builder().id(category.getId()).icon(icon).name(localizedCategoryName)
+          return GetCategoryDTO.builder().id(category.getId()).icon(icon)
+              .name(localizedCategoryName)
               .build();
         }).toList()).role(targetUser.getRole()).build();
   }

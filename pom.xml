@@ -11,7 +11,7 @@
   </parent>
   <groupId>com.github.codogma</groupId>
   <artifactId>codogma-back</artifactId>
-  <version>0.9.32</version>
+  <version>0.9.33</version>
   <name>codogma-back</name>
   <description>codogma-back</description>
   <properties>
@@ -40,6 +40,10 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-redis</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>

@@ -1,6 +1,6 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.GetTag;
+import com.github.codogma.codogmaback.dto.GetTagDTO;
 import com.github.codogma.codogmaback.service.TagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -24,8 +24,8 @@ public class TagController {
 
   @GetMapping
   @Operation(summary = "Get tags by name")
-  public ResponseEntity<List<GetTag>> getTagsByNameContaining(@RequestParam String name) {
-    List<GetTag> tags = tagService.getTagsByNameContaining(name);
+  public ResponseEntity<List<GetTagDTO>> getTagsByNameContaining(@RequestParam String name) {
+    List<GetTagDTO> tags = tagService.getTagsByNameContaining(name);
     return ResponseEntity.ok(tags);
   }
 }

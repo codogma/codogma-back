@@ -1,7 +1,7 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.GetUser;
-import com.github.codogma.codogmaback.dto.UpdateUser;
+import com.github.codogma.codogmaback.dto.GetUserDTO;
+import com.github.codogma.codogmaback.dto.UpdateUserDTO;
 import com.github.codogma.codogmaback.dto.UserRole;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.UserService;
@@ -58,7 +58,7 @@ public class UserController {
       @Parameter(name = "size", description = "Number of users per page"),
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
-  public ResponseEntity<Page<GetUser>> getUsers(@RequestParam(required = false) Long categoryId,
+  public ResponseEntity<Page<GetUserDTO>> getUsers(@RequestParam(required = false) Long categoryId,
       @RequestParam(required = false) String targetUsername,
       @RequestParam(required = false) UserRole role, @RequestParam(required = false) String tag,
       @RequestParam(required = false) String info,
@@ -68,26 +68,26 @@ public class UserController {
       @RequestParam(defaultValue = "username") String sort,
       @RequestParam(defaultValue = "desc") String order,
       @AuthenticationPrincipal UserModel userModel) {
-    Page<GetUser> users = userService.getUsers(categoryId, targetUsername, role, tag, info, page,
+    Page<GetUserDTO> users = userService.getUsers(categoryId, targetUsername, role, tag, info, page,
         size, sort, order, isSubscriptions, isSubscribers, userModel);
     return ResponseEntity.ok(users);
   }
 
   @GetMapping("/{username}")
   @Operation(summary = "Get the user by username")
-  public ResponseEntity<GetUser> getUserByUsername(@PathVariable String username,
+  public ResponseEntity<GetUserDTO> getUserByUsername(@PathVariable String username,
       @AuthenticationPrincipal UserModel userModel) {
-    GetUser userByUsername = userService.getUserByUsername(username, userModel);
+    GetUserDTO userByUsername = userService.getUserByUsername(username, userModel);
     return ResponseEntity.ok(userByUsername);
   }
 
   @PutMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Update the user by username")
-  public ResponseEntity<Object> updateUser(@Valid @ModelAttribute UpdateUser updateUser,
+  public ResponseEntity<Object> updateUser(@Valid @ModelAttribute UpdateUserDTO updateUser,
       @RequestPart(value = "avatar", required = false) MultipartFile avatar,
       @AuthenticationPrincipal UserModel userModel, BindingResult bindingResult) {
     updateUser.setAvatar(avatar);
-    GetUser updatedUser = userService.updateUser(updateUser, userModel, bindingResult);
+    GetUserDTO updatedUser = userService.updateUser(updateUser, userModel, bindingResult);
     if (bindingResult.hasErrors()) {
       Map<String, String> errors = bindingResult.getFieldErrors().stream().collect(
           Collectors.toMap(FieldError::getField,
@@ -109,18 +109,18 @@ public class UserController {
   @PostMapping("/{username}/subscribe")
   @Operation(summary = "Subscribe to the user")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<GetUser> subscribe(@PathVariable String username,
+  public ResponseEntity<GetUserDTO> subscribe(@PathVariable String username,
       @AuthenticationPrincipal UserModel userModel) {
-    GetUser user = userService.subscribe(username, userModel);
+    GetUserDTO user = userService.subscribe(username, userModel);
     return ResponseEntity.ok(user);
   }
 
   @DeleteMapping("/{username}/unsubscribe")
   @Operation(summary = "Unsubscribe from the user")
   @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_AUTHOR')")
-  public ResponseEntity<GetUser> unsubscribe(@PathVariable String username,
+  public ResponseEntity<GetUserDTO> unsubscribe(@PathVariable String username,
       @AuthenticationPrincipal UserModel userModel) {
-    GetUser user = userService.unsubscribe(username, userModel);
+    GetUserDTO user = userService.unsubscribe(username, userModel);
     return ResponseEntity.ok(user);
   }
 }

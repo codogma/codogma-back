@@ -13,18 +13,20 @@ import jakarta.persistence.UniqueConstraint;
 import java.time.Instant;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
-@Data
 @Entity
+@Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "article_likes", uniqueConstraints = @UniqueConstraint(columnNames = {"article_id",
     "user_id"}))
-public class LikeModel {
+public class ArticleLikeModel {
 
   @Id
   @Column(nullable = false)

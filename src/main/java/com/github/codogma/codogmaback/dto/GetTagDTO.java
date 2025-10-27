@@ -12,10 +12,12 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Schema(name = "Get category icon")
+@Schema(name = "Get Tag")
 @JsonInclude(Include.NON_NULL)
-public class GetImage {
+public class GetTagDTO {
 
-  private String imageUrl;
-  private String filename;
+  @Schema(description = "ID of the tag", example = "1")
+  private Long id;
+  @Schema(description = "Name of the tag", example = "vpn")
+  private String name;
 }

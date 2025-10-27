@@ -3,29 +3,30 @@ package com.github.codogma.codogmaback.service;
 import static com.github.codogma.codogmaback.util.ContentUtil.createHtmlPreview;
 
 import com.github.codogma.codogmaback.dto.CompilationsDTO;
-import com.github.codogma.codogmaback.dto.CreateDraftArticle;
-import com.github.codogma.codogmaback.dto.GetArticle;
-import com.github.codogma.codogmaback.dto.GetCategory;
+import com.github.codogma.codogmaback.dto.CreateDraftArticleDTO;
+import com.github.codogma.codogmaback.dto.GetArticleDTO;
+import com.github.codogma.codogmaback.dto.GetCategoryDTO;
 import com.github.codogma.codogmaback.dto.GetCompilation;
+import com.github.codogma.codogmaback.dto.GetImageDTO;
 import com.github.codogma.codogmaback.dto.GetImageWithPalette;
-import com.github.codogma.codogmaback.dto.GetTag;
+import com.github.codogma.codogmaback.dto.GetTagDTO;
 import com.github.codogma.codogmaback.dto.PaletteDTO;
 import com.github.codogma.codogmaback.dto.SwatchDTO;
-import com.github.codogma.codogmaback.dto.UpdateArticle;
-import com.github.codogma.codogmaback.dto.UpdateDraftArticle;
+import com.github.codogma.codogmaback.dto.UpdateArticleDTO;
+import com.github.codogma.codogmaback.dto.UpdateDraftArticleDTO;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.exception.LikeAlreadyExistsException;
 import com.github.codogma.codogmaback.exception.LikeNotFoundException;
 import com.github.codogma.codogmaback.interceptor.localization.LocalizationContext;
 import com.github.codogma.codogmaback.model.ArticleImageModel;
+import com.github.codogma.codogmaback.model.ArticleLikeModel;
 import com.github.codogma.codogmaback.model.ArticleModel;
-import com.github.codogma.codogmaback.model.ArticleScoreProjection;
-import com.github.codogma.codogmaback.model.ArticleView;
+import com.github.codogma.codogmaback.model.ArticleViewModel;
+import com.github.codogma.codogmaback.model.CategoryImageModel;
 import com.github.codogma.codogmaback.model.CategoryModel;
-import com.github.codogma.codogmaback.model.CompilationArticle;
+import com.github.codogma.codogmaback.model.CompilationArticleModel;
 import com.github.codogma.codogmaback.model.CompilationModel;
 import com.github.codogma.codogmaback.model.Language;
-import com.github.codogma.codogmaback.model.LikeModel;
 import com.github.codogma.codogmaback.model.NotificationModel;
 import com.github.codogma.codogmaback.model.NotificationType;
 import com.github.codogma.codogmaback.model.Palette;
@@ -37,12 +38,14 @@ import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.repository.ArticleImageRepository;
 import com.github.codogma.codogmaback.repository.ArticleRepository;
 import com.github.codogma.codogmaback.repository.ArticleViewRepository;
+import com.github.codogma.codogmaback.repository.CategoryImageRepository;
 import com.github.codogma.codogmaback.repository.CategoryRepository;
 import com.github.codogma.codogmaback.repository.CompilationArticleRepository;
 import com.github.codogma.codogmaback.repository.CompilationRepository;
 import com.github.codogma.codogmaback.repository.LikeRepository;
 import com.github.codogma.codogmaback.repository.TagRepository;
 import com.github.codogma.codogmaback.repository.UserRepository;
+import com.github.codogma.codogmaback.repository.projection.ArticleScoreProjection;
 import com.github.codogma.codogmaback.repository.specifications.ArticleSpecifications;
 import com.github.codogma.codogmaback.repository.specifications.ArticleViewSpecifications;
 import com.github.codogma.codogmaback.util.KeywordExtractor;
@@ -90,6 +93,7 @@ public class ArticleService {
   private final EntityManager entityManager;
   private final ExceptionFactory exceptionFactory;
   private final CategoryRepository categoryRepository;
+  private final CategoryImageRepository categoryImageRepository;
   private final CompilationRepository compilationRepository;
   private final KeywordExtractor keywordExtractor;
   private final LikeRepository likeRepository;
@@ -100,6 +104,7 @@ public class ArticleService {
   private final UserRepository userRepository;
   private final ContentBasedRecommender contentBasedRecommender;
   private final CompilationArticleRepository compilationArticleRepository;
+  private final LikeService likeService;
 
   @Value("${search.results.limit}")
   private int searchResultsLimit;
@@ -108,7 +113,7 @@ public class ArticleService {
 
   @Transactional
   @Cacheable(value = "articles", key = "{#order, #sort, #page, #size, #categoryId, #compilationId, #tag, #username, #isFeed, #content, #userModel?.id, @localizationContext.supportedLanguages}", condition = "#content == null || #content.isEmpty()", unless = "#result == null || #result.isEmpty()")
-  public Page<GetArticle> getArticles(String order, String sort, int page, int size,
+  public Page<GetArticleDTO> getArticles(String order, String sort, int page, int size,
       Long categoryId, Long compilationId, String tag, String username, Boolean isFeed,
       UserModel userModel, String content) {
     UserModel foundUser = userModel != null ? userRepository.findById(userModel.getId())
@@ -126,14 +131,14 @@ public class ArticleService {
 
   @Transactional
   @Cacheable(value = "viewedArticles", key = "{#order, #sort, #page, #size, #tag, #content, #userModel?.id, @localizationContext.supportedLanguages}", condition = "#content == null || #content.isEmpty()", unless = "#result == null || #result.isEmpty()")
-  public Page<GetArticle> getViewedArticles(String order, String sort, int page, int size,
+  public Page<GetArticleDTO> getViewedArticles(String order, String sort, int page, int size,
       String tag, String content, UserModel userModel) {
     Sort.Direction sortDirection = Sort.Direction.fromString(order);
     Pageable pageable = PageRequest.of(page, size, Sort.by(sortDirection, sort));
     List<Long> articleIds = getArticleIds(content);
-    Specification<ArticleView> spec = ArticleViewSpecifications.buildSpecification(tag, articleIds,
-        userModel);
-    Page<ArticleView> views = articleViewRepository.findAll(spec, pageable);
+    Specification<ArticleViewModel> spec = ArticleViewSpecifications.buildSpecification(tag,
+        articleIds, userModel);
+    Page<ArticleViewModel> views = articleViewRepository.findAll(spec, pageable);
     return views.map(view -> convertArticleModelToDTO(view.getArticle(), userModel))
         .map(this::preparePreview);
   }
@@ -149,7 +154,7 @@ public class ArticleService {
     return articleIds;
   }
 
-  private GetArticle preparePreview(GetArticle article) {
+  private GetArticleDTO preparePreview(GetArticleDTO article) {
     if (article.getPreviewContent() != null && article.getPreviewContent().isEmpty()) {
       String previewContent = createHtmlPreview(article.getContent(), 1100);
       article.setPreviewContent(previewContent);
@@ -161,14 +166,14 @@ public class ArticleService {
   }
 
   @Transactional
-  public List<GetArticle> getDraftArticles(UserModel userModel) {
+  public List<GetArticleDTO> getDraftArticles(UserModel userModel) {
     return articleRepository.findAllByUserAndStatus(userModel, Status.DRAFT).stream()
         .map(articleModel -> convertArticleModelToDTO(articleModel, userModel)).toList();
   }
 
   @Transactional
   @Cacheable(value = "articleById", key = "{#articleId, #userModel?.id, @localizationContext.language.code}")
-  public GetArticle getArticleById(Long articleId, UserModel userModel) {
+  public GetArticleDTO getArticleById(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     Status articleStatus = articleModel.getStatus();
@@ -180,7 +185,7 @@ public class ArticleService {
       throw exceptionFactory.articleNotFound(articleId);
     }
     boolean likeExists = likeRepository.existsByUserAndArticle(userModel, articleModel);
-    GetArticle getArticle = convertArticleModelToDTO(articleModel, userModel);
+    GetArticleDTO getArticle = convertArticleModelToDTO(articleModel, userModel);
     getArticle.setIsLiked(likeExists);
     return getArticle;
   }
@@ -190,14 +195,14 @@ public class ArticleService {
   public void like(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    Optional<LikeModel> existingLike = likeRepository.findByArticleAndUser(article, userModel);
+    Optional<ArticleLikeModel> existingLike = likeRepository.findByArticleAndUser(article,
+        userModel);
     if (existingLike.isPresent()) {
       throw new LikeAlreadyExistsException("The article was already liked");
     }
-    LikeModel like = LikeModel.builder().article(article).user(userModel).build();
+    ArticleLikeModel like = ArticleLikeModel.builder().article(article).user(userModel).build();
     likeRepository.save(like);
-    article.setLikeCount(article.getLikeCount() + 1);
-    articleRepository.save(article);
+    likeService.incrementLikesCount(articleId);
   }
 
   @Transactional
@@ -205,11 +210,10 @@ public class ArticleService {
   public void unlike(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
-    LikeModel existingLike = likeRepository.findByArticleAndUser(article, userModel)
+    ArticleLikeModel existingLike = likeRepository.findByArticleAndUser(article, userModel)
         .orElseThrow(() -> new LikeNotFoundException("Like not found"));
     likeRepository.delete(existingLike);
-    article.setLikeCount(article.getLikeCount() - 1);
-    articleRepository.save(article);
+    likeService.decrementLikesCount(articleId);
   }
 
   @Transactional
@@ -218,8 +222,9 @@ public class ArticleService {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     if (userModel != null) {
-      ArticleView existingView = articleViewRepository.findByUserAndArticle(userModel, articleModel)
-          .orElseGet(() -> ArticleView.builder().user(userModel).article(articleModel).build());
+      ArticleViewModel existingView = articleViewRepository.findByUserAndArticle(userModel,
+          articleModel).orElseGet(
+          () -> ArticleViewModel.builder().user(userModel).article(articleModel).build());
       existingView.setUpdatedAt(Instant.now());
       articleViewRepository.save(existingView);
     }
@@ -227,7 +232,7 @@ public class ArticleService {
 
   @Transactional
   @Cacheable(value = "recommendations", key = "#articleId")
-  public List<GetArticle> getRecommendationsForArticle(Long articleId, UserModel userModel) {
+  public List<GetArticleDTO> getRecommendationsForArticle(Long articleId, UserModel userModel) {
     ArticleModel article = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     Instant sixMonthsAgo = Instant.now().minus(Duration.ofDays(180));
@@ -249,9 +254,9 @@ public class ArticleService {
                       .defaultOperator(BooleanOperator.OR).boost(1.0f))
               .must(f.match().field("title").matching(article.getTitle()).fuzzy().boost(10.0f))
               .should(f.match().field("content").matching(article.getContent()).boost(0.00002f));
-          if (article.getLikeCount() != null) {
+          if (article.getLikesCount() != null) {
             bool.should(
-                f.range().field("likeCount").atLeast(Math.round(article.getLikeCount() * 0.8f))
+                f.range().field("likesCount").atLeast(Math.round(article.getLikesCount() * 0.8f))
                     .boost(1.2f));
           }
           if (!tagNames.isEmpty()) {
@@ -266,7 +271,7 @@ public class ArticleService {
           return bool;
         }).sort(f -> f.composite(b -> {
           b.add(f.score().desc());
-          b.add(f.field("likeCount").desc());
+          b.add(f.field("likesCount").desc());
           b.add(f.field("createdAt").desc());
         })).fetch(recommendationLimit);
     List<ArticleModel> recommendedArticles = result.hits().stream()
@@ -279,7 +284,7 @@ public class ArticleService {
 
   // TODO: fix this method
   @Transactional
-  public List<GetArticle> getRecommendations(UserModel user) {
+  public List<GetArticleDTO> getRecommendations(UserModel user) {
     if (user == null) {
       return Collections.emptyList();
     }
@@ -289,10 +294,9 @@ public class ArticleService {
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
-      "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
-  public GetArticle getDraftedArticleById(Long articleId, UserModel userModel) {
+  @CacheEvict(cacheNames = {"articles", "viewedArticles", "recommendations",
+      "articleById"}, allEntries = true)
+  public GetArticleDTO getDraftedArticleById(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     if (!userModel.getId().equals(articleModel.getUser().getId())) {
@@ -309,18 +313,17 @@ public class ArticleService {
 
   @Transactional
   @CacheEvict(cacheNames = {"articles", "recommendations"}, allEntries = true)
-  public GetArticle createDraftArticle(CreateDraftArticle draftArticle, UserModel userModel) {
+  public GetArticleDTO createDraftArticle(CreateDraftArticleDTO draftArticle, UserModel userModel) {
     ArticleModel articleModel = ArticleModel.builder().user(userModel)
-        .title(draftArticle.getTitle()).likeCount(0).build();
+        .title(draftArticle.getTitle()).likesCount(0).build();
     articleModel = articleRepository.save(articleModel);
     return convertArticleModelToDTO(articleModel, userModel);
   }
 
   @Transactional
-  @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
-      "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
-  public void updateDraftArticle(Long articleId, UpdateDraftArticle draftArticle,
+  @CacheEvict(cacheNames = {"articles", "viewedArticles", "recommendations",
+      "articleById"}, allEntries = true)
+  public void updateDraftArticle(Long articleId, UpdateDraftArticleDTO draftArticle,
       UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -352,36 +355,36 @@ public class ArticleService {
     List<Long> compilationIds = draftArticle.getCompilationIds();
     if (compilationIds != null) {
       // Получаем существующие связи
-      List<CompilationArticle> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
+      List<CompilationArticleModel> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
           articleModel, userModel);
       // Создаем мапу для быстрого поиска существующих связей
-      Map<Long, CompilationArticle> existingLinksMap = existingLinks.stream().collect(
+      Map<Long, CompilationArticleModel> existingLinksMap = existingLinks.stream().collect(
           Collectors.toMap(compilationArticle -> compilationArticle.getCompilation().getId(),
               compilationArticle -> compilationArticle));
       // Удаляем связи, которые отсутствуют в новом списке
-      List<CompilationArticle> linksToRemove = existingLinks.stream().filter(
+      List<CompilationArticleModel> linksToRemove = existingLinks.stream().filter(
           compilationArticle -> !compilationIds.contains(
               compilationArticle.getCompilation().getId())).toList();
 
-      for (CompilationArticle removedLink : linksToRemove) {
+      for (CompilationArticleModel removedLink : linksToRemove) {
         CompilationModel compilation = removedLink.getCompilation();
         compilation.getCompilationArticles().remove(removedLink);
         compilationArticleRepository.delete(removedLink);
-        List<CompilationArticle> links = compilationArticleRepository.findByCompilationOrderByPosition(
+        List<CompilationArticleModel> links = compilationArticleRepository.findByCompilationOrderByPosition(
             compilation);
         for (int i = 0; i < links.size(); i++) {
-          CompilationArticle link = links.get(i);
+          CompilationArticleModel link = links.get(i);
           link.setPosition(i);
         }
         compilationArticleRepository.saveAll(links);
       }
 
       // Создаем или обновляем связи
-      List<CompilationArticle> linksToSave = new ArrayList<>();
+      List<CompilationArticleModel> linksToSave = new ArrayList<>();
 
       // Для каждой переданной подборки
       for (Long compilationId : compilationIds) {
-        CompilationArticle link = existingLinksMap.get(compilationId);
+        CompilationArticleModel link = existingLinksMap.get(compilationId);
         // Получаем актуальную подборку (возможно, её коллекция compilationArticles не загружена)
         CompilationModel compilation = compilationRepository.findById(compilationId)
             .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
@@ -389,8 +392,8 @@ public class ArticleService {
         if (link == null) {
           // Новая связь: вычисляем максимальную позицию в подборке и добавляем статью в конец
           int maxPosition = compilation.getCompilationArticles().stream()
-              .map(CompilationArticle::getPosition).max(Integer::compareTo).orElse(-1);
-          link = CompilationArticle.builder().article(articleModel).compilation(compilation)
+              .map(CompilationArticleModel::getPosition).max(Integer::compareTo).orElse(-1);
+          link = CompilationArticleModel.builder().article(articleModel).compilation(compilation)
               .position(maxPosition + 1).build();
           // Добавляем связь в коллекцию подборки, чтобы orphanRemoval работал корректно
           compilation.getCompilationArticles().add(link);
@@ -424,8 +427,8 @@ public class ArticleService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
-  public void updateArticle(Long articleId, UpdateArticle updateArticle, UserModel userModel) {
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id, @localizationContext.language.code}")})
+  public void updateArticle(Long articleId, UpdateArticleDTO updateArticle, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
     if (!userModel.getId().equals(articleModel.getUser().getId())) {
@@ -442,36 +445,36 @@ public class ArticleService {
     List<Long> compilationIds = updateArticle.getCompilationIds();
     if (compilationIds != null) {
       // Получаем существующие связи
-      List<CompilationArticle> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
+      List<CompilationArticleModel> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
           articleModel, userModel);
       // Создаем мапу для быстрого поиска существующих связей
-      Map<Long, CompilationArticle> existingLinksMap = existingLinks.stream().collect(
+      Map<Long, CompilationArticleModel> existingLinksMap = existingLinks.stream().collect(
           Collectors.toMap(compilationArticle -> compilationArticle.getCompilation().getId(),
               compilationArticle -> compilationArticle));
       // Удаляем связи, которые отсутствуют в новом списке
-      List<CompilationArticle> linksToRemove = existingLinks.stream().filter(
+      List<CompilationArticleModel> linksToRemove = existingLinks.stream().filter(
           compilationArticle -> !compilationIds.contains(
               compilationArticle.getCompilation().getId())).toList();
 
-      for (CompilationArticle removedLink : linksToRemove) {
+      for (CompilationArticleModel removedLink : linksToRemove) {
         CompilationModel compilation = removedLink.getCompilation();
         compilation.getCompilationArticles().remove(removedLink);
         compilationArticleRepository.delete(removedLink);
-        List<CompilationArticle> links = compilationArticleRepository.findByCompilationOrderByPosition(
+        List<CompilationArticleModel> links = compilationArticleRepository.findByCompilationOrderByPosition(
             compilation);
         for (int i = 0; i < links.size(); i++) {
-          CompilationArticle link = links.get(i);
+          CompilationArticleModel link = links.get(i);
           link.setPosition(i);
         }
         compilationArticleRepository.saveAll(links);
       }
 
       // Создаем или обновляем связи
-      List<CompilationArticle> linksToSave = new ArrayList<>();
+      List<CompilationArticleModel> linksToSave = new ArrayList<>();
 
       // Для каждой переданной подборки
       for (Long compilationId : compilationIds) {
-        CompilationArticle link = existingLinksMap.get(compilationId);
+        CompilationArticleModel link = existingLinksMap.get(compilationId);
         // Получаем актуальную подборку (возможно, её коллекция compilationArticles не загружена)
         CompilationModel compilation = compilationRepository.findById(compilationId)
             .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
@@ -479,8 +482,8 @@ public class ArticleService {
         if (link == null) {
           // Новая связь: вычисляем максимальную позицию в подборке и добавляем статью в конец
           int maxPosition = compilation.getCompilationArticles().stream()
-              .map(CompilationArticle::getPosition).max(Integer::compareTo).orElse(-1);
-          link = CompilationArticle.builder().article(articleModel).compilation(compilation)
+              .map(CompilationArticleModel::getPosition).max(Integer::compareTo).orElse(-1);
+          link = CompilationArticleModel.builder().article(articleModel).compilation(compilation)
               .position(maxPosition + 1).build();
           // Добавляем связь в коллекцию подборки, чтобы orphanRemoval работал корректно
           compilation.getCompilationArticles().add(link);
@@ -534,7 +537,7 @@ public class ArticleService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "viewedArticles",
       "recommendations"}, allEntries = true),
-      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id}")})
+      @CacheEvict(value = "articleById", key = "{#articleId, #userModel?.id, @localizationContext.language.code}")})
   public void publishArticle(Long articleId, UserModel userModel) {
     ArticleModel articleModel = articleRepository.findById(articleId)
         .orElseThrow(() -> exceptionFactory.articleNotFound(articleId));
@@ -631,36 +634,36 @@ public class ArticleService {
       throw new IllegalArgumentException("Some compilation IDs are invalid");
     }
     // Получаем существующие связи
-    List<CompilationArticle> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
+    List<CompilationArticleModel> existingLinks = compilationArticleRepository.findByArticleAndCompilationUser(
         articleModel, userModel);
     // Создаем мапу для быстрого поиска существующих связей
-    Map<Long, CompilationArticle> existingLinksMap = existingLinks.stream().collect(
+    Map<Long, CompilationArticleModel> existingLinksMap = existingLinks.stream().collect(
         Collectors.toMap(compilationArticle -> compilationArticle.getCompilation().getId(),
             compilationArticle -> compilationArticle));
     // Удаляем связи, которые отсутствуют в новом списке
-    List<CompilationArticle> linksToRemove = existingLinks.stream().filter(
+    List<CompilationArticleModel> linksToRemove = existingLinks.stream().filter(
             compilationArticle -> !compilationIds.contains(compilationArticle.getCompilation().getId()))
         .toList();
 
-    for (CompilationArticle removedLink : linksToRemove) {
+    for (CompilationArticleModel removedLink : linksToRemove) {
       CompilationModel compilation = removedLink.getCompilation();
       compilation.getCompilationArticles().remove(removedLink);
       compilationArticleRepository.delete(removedLink);
-      List<CompilationArticle> links = compilationArticleRepository.findByCompilationOrderByPosition(
+      List<CompilationArticleModel> links = compilationArticleRepository.findByCompilationOrderByPosition(
           compilation);
       for (int i = 0; i < links.size(); i++) {
-        CompilationArticle link = links.get(i);
+        CompilationArticleModel link = links.get(i);
         link.setPosition(i);
       }
       compilationArticleRepository.saveAll(links);
     }
 
     // Создаем или обновляем связи
-    List<CompilationArticle> linksToSave = new ArrayList<>();
+    List<CompilationArticleModel> linksToSave = new ArrayList<>();
 
     // Для каждой переданной подборки
     for (Long compilationId : compilationIds) {
-      CompilationArticle link = existingLinksMap.get(compilationId);
+      CompilationArticleModel link = existingLinksMap.get(compilationId);
       // Получаем актуальную подборку (возможно, её коллекция compilationArticles не загружена)
       CompilationModel compilation = compilationRepository.findById(compilationId)
           .orElseThrow(() -> exceptionFactory.compilationNotFound(compilationId));
@@ -668,8 +671,8 @@ public class ArticleService {
       if (link == null) {
         // Новая связь: вычисляем максимальную позицию в подборке и добавляем статью в конец
         int maxPosition = compilation.getCompilationArticles().stream()
-            .map(CompilationArticle::getPosition).max(Integer::compareTo).orElse(-1);
-        link = CompilationArticle.builder().article(articleModel).compilation(compilation)
+            .map(CompilationArticleModel::getPosition).max(Integer::compareTo).orElse(-1);
+        link = CompilationArticleModel.builder().article(articleModel).compilation(compilation)
             .position(maxPosition + 1).build();
         // Добавляем связь в коллекцию подборки, чтобы orphanRemoval работал корректно
         compilation.getCompilationArticles().add(link);
@@ -680,7 +683,7 @@ public class ArticleService {
     compilationArticleRepository.saveAll(linksToSave);
   }
 
-  private GetArticle convertArticleModelToDTO(ArticleModel articleModel, UserModel userModel) {
+  private GetArticleDTO convertArticleModelToDTO(ArticleModel articleModel, UserModel userModel) {
     ArticleModel originalArticle =
         articleModel.getOriginalArticleId() != null ? articleRepository.findById(
             articleModel.getOriginalArticleId()).orElse(null) : null;
@@ -705,22 +708,28 @@ public class ArticleService {
     GetImageWithPalette image = articleImage == null ? null
         : GetImageWithPalette.builder().imageUrl(articleImage.getImageUrl())
             .filename(articleImage.getFilename()).palette(paletteDTO).build();
-    return GetArticle.builder().id(articleModel.getId()).status(articleModel.getStatus())
-        .language(articleModel.getLanguage()).likeCount(articleModel.getLikeCount())
-        .originalArticle(originalArticle != null ? GetArticle.builder().id(originalArticle.getId())
-            .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
+    return GetArticleDTO.builder().id(articleModel.getId()).status(articleModel.getStatus())
+        .language(articleModel.getLanguage()).likesCount(articleModel.getLikesCount())
+        .originalArticle(
+            originalArticle != null ? GetArticleDTO.builder().id(originalArticle.getId())
+                .title(originalArticle.getTitle()).build() : null).title(articleModel.getTitle())
         .image(image).previewContent(articleModel.getPreviewContent())
         .content(articleModel.getContent()).username(articleModel.getUser().getUsername())
         .authorAvatarUrl(articleModel.getUser().getAvatarUrl())
         .categories(articleModel.getCategories().stream().map(category -> {
+          CategoryImageModel categoryIcon = categoryImageRepository.findByCategoryIdAndIsIconIsTrue(
+              category.getId()).orElse(null);
+          GetImageDTO icon = categoryIcon == null ? null
+              : GetImageDTO.builder().imageUrl(categoryIcon.getImageUrl())
+                  .filename(categoryIcon.getFilename()).build();
           String localizedCategoryName = category.getName()
               .getOrDefault(interfaceLanguage, category.getName().get(Language.EN));
-          return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
-        }).toList()).compilations(compilations).tags(articleModel.getTags().stream()
-            .map(tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
-            .toList()).compilationsCount(articleModel.getCompilationArticles().size())
-        .commentsCount(commentsCount).createdAt(articleModel.getCreatedAt())
-        .updatedAt(articleModel.getUpdatedAt()).build();
+          return GetCategoryDTO.builder().id(category.getId()).name(localizedCategoryName)
+              .icon(icon).build();
+        }).toList()).compilations(compilations).tags(articleModel.getTags().stream().map(
+                tagModel -> GetTagDTO.builder().id(tagModel.getId()).name(tagModel.getName()).build())
+            .toList()).viewsCount(articleModel.getViews().size()).commentsCount(commentsCount)
+        .createdAt(articleModel.getCreatedAt()).updatedAt(articleModel.getUpdatedAt()).build();
   }
 
   private SwatchDTO buildSwatchDTO(Swatch swatch) {

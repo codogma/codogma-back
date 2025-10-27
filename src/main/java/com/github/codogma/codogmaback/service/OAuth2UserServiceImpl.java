@@ -61,15 +61,17 @@ public class OAuth2UserServiceImpl implements OAuth2UserService<OAuth2UserReques
     UserModel user = handler.processOAuth2User(oAuth2User);
     user.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
 
-    UserModel existingUser = userRepository.findByEmail(user.getEmail()).orElseGet(() -> {
+    UserModel existingUser = userRepository.findByEmail(user.getEmail()).map(userModel -> {
+      if (userModel.getAvatarUrl() == null) {
+        userModel.setAvatarUrl(user.getAvatarUrl());
+      }
+      userModel.updateFrom(user);
+      return userRepository.save(userModel);
+    }).orElseGet(() -> {
       user.setUuid(UUID.randomUUID());
-      UserModel newUser = userRepository.save(user);
-      newUser.setUsername("username_" + newUser.getUuid());
-      return newUser;
+      user.setUsername("username_" + user.getUuid());
+      return userRepository.save(user);
     });
-    existingUser.setEnabled(true);
-    existingUser.updateFrom(user);
-    userRepository.save(existingUser);
 
     HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(
         RequestContextHolder.getRequestAttributes())).getRequest();

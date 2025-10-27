@@ -1,6 +1,6 @@
 package com.github.codogma.codogmaback.repository.specifications;
 
-import com.github.codogma.codogmaback.model.ArticleView;
+import com.github.codogma.codogmaback.model.ArticleViewModel;
 import com.github.codogma.codogmaback.model.Role;
 import com.github.codogma.codogmaback.model.Status;
 import com.github.codogma.codogmaback.model.UserModel;
@@ -9,7 +9,7 @@ import org.springframework.data.jpa.domain.Specification;
 
 public class ArticleViewSpecifications {
 
-  public static Specification<ArticleView> hasAccess(UserModel userModel) {
+  public static Specification<ArticleViewModel> hasAccess(UserModel userModel) {
     return (root, query, builder) -> {
       if (userModel != null) {
         Role role = userModel.getRole();
@@ -28,11 +28,11 @@ public class ArticleViewSpecifications {
     };
   }
 
-  public static Specification<ArticleView> belongsToUser(UserModel userModel) {
+  public static Specification<ArticleViewModel> belongsToUser(UserModel userModel) {
     return (root, query, builder) -> builder.equal(root.get("user"), userModel);
   }
 
-  public static Specification<ArticleView> hasTagName(String tagName) {
+  public static Specification<ArticleViewModel> hasTagName(String tagName) {
     return (root, query, builder) -> {
       if (tagName == null || tagName.isEmpty()) {
         return builder.conjunction();
@@ -42,12 +42,13 @@ public class ArticleViewSpecifications {
     };
   }
 
-  public static Specification<ArticleView> hasContentMatch(List<Long> articleIds) {
+  public static Specification<ArticleViewModel> hasContentMatch(List<Long> articleIds) {
     return (root, query, builder) -> articleIds != null ? root.get("article").get("id")
         .in(articleIds) : null;
   }
 
-  public static Specification<ArticleView> buildSpecification(String tagName, List<Long> articleIds,
+  public static Specification<ArticleViewModel> buildSpecification(String tagName,
+      List<Long> articleIds,
       UserModel userModel) {
     return Specification.where(belongsToUser(userModel)).and(hasTagName(tagName))
         .and(hasAccess(userModel)).and(hasContentMatch(articleIds));

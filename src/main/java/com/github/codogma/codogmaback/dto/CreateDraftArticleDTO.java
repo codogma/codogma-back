@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Create draft article")
-public class CreateDraftArticle {
+public class CreateDraftArticleDTO {
 
   @NotBlank(message = "Title cannot be null and must contain a value")
   @Schema(description = "Title of the article", example = "My First Blog Article", requiredMode = RequiredMode.REQUIRED)

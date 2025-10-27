@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Update Comment", description = "Update the content of a comment")
-public class UpdateComment {
+public class UpdateCommentDTO {
 
   @NotBlank(message = "Status cannot be null and must contain a value")
   @Schema(description = "Content of the comment", example = "This is the updated content of the comment", minLength = 2, maxLength = 1000, requiredMode = RequiredMode.REQUIRED)

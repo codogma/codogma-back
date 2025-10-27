@@ -1,14 +1,14 @@
 package com.github.codogma.codogmaback.service;
 
-import com.github.codogma.codogmaback.dto.CreateCategory;
-import com.github.codogma.codogmaback.dto.GetCategory;
-import com.github.codogma.codogmaback.dto.GetCategoryToUpdate;
-import com.github.codogma.codogmaback.dto.GetImage;
+import com.github.codogma.codogmaback.dto.CreateCategoryDTO;
+import com.github.codogma.codogmaback.dto.GetCategoryDTO;
+import com.github.codogma.codogmaback.dto.GetCategoryToUpdateDTO;
+import com.github.codogma.codogmaback.dto.GetImageDTO;
 import com.github.codogma.codogmaback.dto.GetImageWithPalette;
-import com.github.codogma.codogmaback.dto.GetTag;
+import com.github.codogma.codogmaback.dto.GetTagDTO;
 import com.github.codogma.codogmaback.dto.PaletteDTO;
 import com.github.codogma.codogmaback.dto.SwatchDTO;
-import com.github.codogma.codogmaback.dto.UpdateCategory;
+import com.github.codogma.codogmaback.dto.UpdateCategoryDTO;
 import com.github.codogma.codogmaback.exception.CategoryNotFoundException;
 import com.github.codogma.codogmaback.exception.ExceptionFactory;
 import com.github.codogma.codogmaback.exception.FavoriteAlreadyExistsException;
@@ -70,7 +70,8 @@ public class CategoryService {
 
   @Transactional
   @Cacheable(value = "categories", key = "{#order, #sort, #page, #size, #tag, #info, #isFavorite, #userModel?.id, @localizationContext.language.code}", condition = "#info == null || #info.isEmpty()", unless = "#result == null || #result.isEmpty()")
-  public Page<GetCategory> getCategories(String order, String sort, int page, int size, String tag,
+  public Page<GetCategoryDTO> getCategories(String order, String sort, int page, int size,
+      String tag,
       String info, Boolean isFavorite, UserModel userModel) {
     UserModel foundUser = userModel != null ? userRepository.findById(userModel.getId())
         .orElseThrow(() -> exceptionFactory.userNotFound(userModel.getUsername())) : null;
@@ -96,7 +97,7 @@ public class CategoryService {
 
   @Transactional
   @Cacheable(value = "categoriesByName", key = "{#name, @localizationContext.language.code}")
-  public List<GetCategory> getCategoriesByNameContaining(String name) {
+  public List<GetCategoryDTO> getCategoriesByNameContaining(String name) {
     Language interfaceLanguage = localizationContext.getLanguage();
     return categoryRepository.findTop10ByNameStartingWithIgnoreCase(interfaceLanguage.name(), name)
         .stream().map(this::convertCategoryToDTO).toList();
@@ -104,18 +105,18 @@ public class CategoryService {
 
   @Transactional
   @Cacheable(value = "categoryById", key = "{#categoryId, #userModel?.id, @localizationContext.language.code}")
-  public GetCategory getCategoryById(Long categoryId, UserModel userModel) {
+  public GetCategoryDTO getCategoryById(Long categoryId, UserModel userModel) {
     CategoryModel categoryModel = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     return convertCategoryToDTO(categoryModel, userModel);
   }
 
   @Transactional
-  public Optional<GetCategoryToUpdate> getCategoryByIdToUpdate(Long categoryId) {
+  public Optional<GetCategoryToUpdateDTO> getCategoryByIdToUpdate(Long categoryId) {
     CategoryImageModel categoryIcon = categoryImageRepository.findByCategoryIdAndIsIconIsTrue(
         categoryId).orElse(null);
-    GetImage icon = categoryIcon == null ? null
-        : GetImage.builder().imageUrl(categoryIcon.getImageUrl())
+    GetImageDTO icon = categoryIcon == null ? null
+        : GetImageDTO.builder().imageUrl(categoryIcon.getImageUrl())
             .filename(categoryIcon.getFilename()).build();
     CategoryImageModel categoryImage = categoryImageRepository.findByCategoryIdAndIsFullIsTrue(
         categoryId).orElse(null);
@@ -133,13 +134,13 @@ public class CategoryService {
         : GetImageWithPalette.builder().imageUrl(categoryImage.getImageUrl())
             .filename(categoryImage.getFilename()).palette(paletteDTO).build();
     return categoryRepository.findByIdWithCollections(categoryId).map(
-        categoryModel -> GetCategoryToUpdate.builder().name(categoryModel.getName()).icon(icon)
+        categoryModel -> GetCategoryToUpdateDTO.builder().name(categoryModel.getName()).icon(icon)
             .image(image).description(categoryModel.getDescription()).build());
   }
 
   @Transactional
   @CacheEvict(cacheNames = {"categories", "categoriesByName"}, allEntries = true)
-  public GetCategory createCategory(CreateCategory createCategory, UserModel userModel) {
+  public GetCategoryDTO createCategory(CreateCategoryDTO createCategory, UserModel userModel) {
     CategoryModel category = CategoryModel.builder().name(createCategory.getName())
         .description(createCategory.getDescription()).build();
     Optional.ofNullable(createCategory.getIcon()).filter(icon -> !icon.isEmpty())
@@ -164,7 +165,7 @@ public class CategoryService {
   @Caching(evict = {
       @CacheEvict(cacheNames = {"categories", "categoriesByName", "users"}, allEntries = true),
       @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
-  public GetCategory updateCategory(Long categoryId, UpdateCategory updateCategory,
+  public GetCategoryDTO updateCategory(Long categoryId, UpdateCategoryDTO updateCategory,
       UserModel userModel) {
     CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
@@ -211,7 +212,7 @@ public class CategoryService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "categories"}, allEntries = true),
       @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
-  public GetCategory addToFavorite(Long categoryId, UserModel userModel) {
+  public GetCategoryDTO addToFavorite(Long categoryId, UserModel userModel) {
     CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     boolean favoriteExists = favoriteRepository.existsByUserAndCategory(userModel, category);
@@ -226,14 +227,14 @@ public class CategoryService {
   @Transactional
   @Caching(evict = {@CacheEvict(cacheNames = {"articles", "categories"}, allEntries = true),
       @CacheEvict(value = "categoryById", key = "{#categoryId, #userModel.id, @localizationContext.language.code}")})
-  public GetCategory unfavorite(Long categoryId, UserModel userModel) {
+  public GetCategoryDTO unfavorite(Long categoryId, UserModel userModel) {
     CategoryModel category = categoryRepository.findById(categoryId)
         .orElseThrow(() -> new CategoryNotFoundException("Category not found"));
     favoriteRepository.deleteByUserAndCategory(userModel, category);
     return convertCategoryToDTO(category, userModel);
   }
 
-  private GetCategory convertCategoryToDTO(CategoryModel category, UserModel userModel) {
+  private GetCategoryDTO convertCategoryToDTO(CategoryModel category, UserModel userModel) {
     List<TagModel> topTags = tagRepository.findTop10TagsByCategoryId(category.getId());
     boolean existed = favoriteRepository.existsByUserAndCategory(userModel, category);
     String localizedCategoryName = localizationUtil.getLocalizedValue(category.getName());
@@ -241,8 +242,8 @@ public class CategoryService {
         category.getDescription());
     CategoryImageModel categoryIcon = categoryImageRepository.findByCategoryIdAndIsIconIsTrue(
         category.getId()).orElse(null);
-    GetImage icon = categoryIcon == null ? null
-        : GetImage.builder().imageUrl(categoryIcon.getImageUrl())
+    GetImageDTO icon = categoryIcon == null ? null
+        : GetImageDTO.builder().imageUrl(categoryIcon.getImageUrl())
             .filename(categoryIcon.getFilename()).build();
     CategoryImageModel categoryImage = categoryImageRepository.findByCategoryIdAndIsFullIsTrue(
         category.getId()).orElse(null);
@@ -259,16 +260,17 @@ public class CategoryService {
     GetImageWithPalette image = categoryImage == null ? null
         : GetImageWithPalette.builder().imageUrl(categoryImage.getImageUrl())
             .filename(categoryImage.getFilename()).palette(paletteDTO).build();
-    return GetCategory.builder().id(category.getId()).name(localizedCategoryName)
+    return GetCategoryDTO.builder().id(category.getId()).name(localizedCategoryName)
         .isFavorite(existed).description(localizedCategoryDescription).icon(icon).image(image).tags(
             topTags.stream().map(
-                    tagModel -> GetTag.builder().id(tagModel.getId()).name(tagModel.getName()).build())
+                    tagModel -> GetTagDTO.builder().id(tagModel.getId()).name(tagModel.getName())
+                        .build())
                 .toList()).build();
   }
 
-  private GetCategory convertCategoryToDTO(CategoryModel category) {
+  private GetCategoryDTO convertCategoryToDTO(CategoryModel category) {
     String localizedCategoryName = localizationUtil.getLocalizedValue(category.getName());
-    return GetCategory.builder().id(category.getId()).name(localizedCategoryName).build();
+    return GetCategoryDTO.builder().id(category.getId()).name(localizedCategoryName).build();
   }
 
   private SwatchDTO buildSwatchDTO(Swatch swatch) {

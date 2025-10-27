@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Create Comment")
-public class CreateComment {
+public class CreateCommentDTO {
 
   @Schema(description = "ID of the article", example = "1", requiredMode = RequiredMode.REQUIRED)
   private Long articleId;

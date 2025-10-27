@@ -1,10 +1,10 @@
 package com.github.codogma.codogmaback.controller;
 
 import com.github.codogma.codogmaback.dto.CompilationsDTO;
-import com.github.codogma.codogmaback.dto.CreateDraftArticle;
-import com.github.codogma.codogmaback.dto.GetArticle;
-import com.github.codogma.codogmaback.dto.UpdateArticle;
-import com.github.codogma.codogmaback.dto.UpdateDraftArticle;
+import com.github.codogma.codogmaback.dto.CreateDraftArticleDTO;
+import com.github.codogma.codogmaback.dto.GetArticleDTO;
+import com.github.codogma.codogmaback.dto.UpdateArticleDTO;
+import com.github.codogma.codogmaback.dto.UpdateDraftArticleDTO;
 import com.github.codogma.codogmaback.model.UserModel;
 import com.github.codogma.codogmaback.service.ArticleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -54,7 +54,7 @@ public class ArticleController {
       @Parameter(name = "size", description = "Number of articles per page"),
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
-  public ResponseEntity<Page<GetArticle>> getArticles(
+  public ResponseEntity<Page<GetArticleDTO>> getArticles(
       @RequestParam(required = false) Long categoryId,
       @RequestParam(required = false) Long compilationId,
       @RequestParam(required = false) String tag, @RequestParam(required = false) String username,
@@ -68,7 +68,7 @@ public class ArticleController {
       sort = "compilationArticles.position";
       order = "asc";
     }
-    Page<GetArticle> articles = articleService.getArticles(order, sort, page, size, categoryId,
+    Page<GetArticleDTO> articles = articleService.getArticles(order, sort, page, size, categoryId,
         compilationId, tag, username, isFeed, userModel, content);
     return ResponseEntity.ok(articles);
   }
@@ -83,21 +83,21 @@ public class ArticleController {
       @Parameter(name = "size", description = "Number of articles per page"),
       @Parameter(name = "sort", description = "Field to sort by"),
       @Parameter(name = "order", description = "Order direction, either 'asc' or 'desc'")})
-  public ResponseEntity<Page<GetArticle>> getViewedArticles(
+  public ResponseEntity<Page<GetArticleDTO>> getViewedArticles(
       @RequestParam(required = false) String tag, @RequestParam(required = false) String content,
       @RequestParam(defaultValue = "updatedAt") String sort,
       @RequestParam(defaultValue = "desc") String order, @RequestParam(defaultValue = "0") int page,
       @RequestParam(defaultValue = "10") int size, @AuthenticationPrincipal UserModel userModel) {
-    Page<GetArticle> articles = articleService.getViewedArticles(order, sort, page, size, tag,
+    Page<GetArticleDTO> articles = articleService.getViewedArticles(order, sort, page, size, tag,
         content, userModel);
     return ResponseEntity.ok(articles);
   }
 
   @GetMapping("/{id:\\d+}")
   @Operation(summary = "Get the article by id")
-  public ResponseEntity<GetArticle> getArticleById(@PathVariable Long id,
+  public ResponseEntity<GetArticleDTO> getArticleById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetArticle article = articleService.getArticleById(id, userModel);
+    GetArticleDTO article = articleService.getArticleById(id, userModel);
     return ResponseEntity.ok(article);
   }
 
@@ -127,44 +127,44 @@ public class ArticleController {
 
   @GetMapping("/recommendations")
   @Operation(summary = "Get recommendations for the user based on their interests")
-  public ResponseEntity<List<GetArticle>> getRecommendations(
+  public ResponseEntity<List<GetArticleDTO>> getRecommendations(
       @AuthenticationPrincipal UserModel user) {
     return ResponseEntity.ok(articleService.getRecommendations(user));
   }
 
   @GetMapping("/{id:\\d+}/recommendations")
   @Operation(summary = "Get recommendations for the user based on the article")
-  public ResponseEntity<List<GetArticle>> getRecommendationsForArticle(@PathVariable Long id,
+  public ResponseEntity<List<GetArticleDTO>> getRecommendationsForArticle(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    List<GetArticle> articles = articleService.getRecommendationsForArticle(id, userModel);
+    List<GetArticleDTO> articles = articleService.getRecommendationsForArticle(id, userModel);
     return ResponseEntity.ok(articles);
   }
 
   @GetMapping("/drafts")
   @Operation(summary = "Get author's draft articles")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
-  public ResponseEntity<List<GetArticle>> getDraftArticles(
+  public ResponseEntity<List<GetArticleDTO>> getDraftArticles(
       @AuthenticationPrincipal UserModel userModel) {
-    List<GetArticle> articles = articleService.getDraftArticles(userModel);
+    List<GetArticleDTO> articles = articleService.getDraftArticles(userModel);
     return ResponseEntity.ok(articles);
   }
 
   @GetMapping("/{id:\\d+}/draft")
   @Operation(summary = "Get author's drafted article")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
-  public ResponseEntity<GetArticle> getDraftedArticleById(@PathVariable Long id,
+  public ResponseEntity<GetArticleDTO> getDraftedArticleById(@PathVariable Long id,
       @AuthenticationPrincipal UserModel userModel) {
-    GetArticle article = articleService.getDraftedArticleById(id, userModel);
+    GetArticleDTO article = articleService.getDraftedArticleById(id, userModel);
     return ResponseEntity.ok(article);
   }
 
   @PostMapping("/drafts")
   @Operation(summary = "Create draft article")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
-  public ResponseEntity<GetArticle> createDraftArticle(
-      @Valid @RequestBody CreateDraftArticle draftArticle,
+  public ResponseEntity<GetArticleDTO> createDraftArticle(
+      @Valid @RequestBody CreateDraftArticleDTO draftArticle,
       @AuthenticationPrincipal UserModel userModel) {
-    GetArticle article = articleService.createDraftArticle(draftArticle, userModel);
+    GetArticleDTO article = articleService.createDraftArticle(draftArticle, userModel);
     return new ResponseEntity<>(article, HttpStatus.CREATED);
   }
 
@@ -172,7 +172,7 @@ public class ArticleController {
   @Operation(summary = "Update draft article")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> updateDraftArticle(@PathVariable Long id,
-      @Valid @RequestBody UpdateDraftArticle draftArticle,
+      @Valid @RequestBody UpdateDraftArticleDTO draftArticle,
       @AuthenticationPrincipal UserModel userModel) {
     articleService.updateDraftArticle(id, draftArticle, userModel);
     return ResponseEntity.noContent().build();
@@ -182,7 +182,7 @@ public class ArticleController {
   @Operation(summary = "Update the article")
   @PreAuthorize("hasAuthority('ROLE_AUTHOR')")
   public ResponseEntity<Void> updateArticle(@PathVariable Long id,
-      @Valid @RequestBody UpdateArticle article, @AuthenticationPrincipal UserModel userModel) {
+      @Valid @RequestBody UpdateArticleDTO article, @AuthenticationPrincipal UserModel userModel) {
     articleService.updateArticle(id, article, userModel);
     return ResponseEntity.noContent().build();
   }

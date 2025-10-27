@@ -1,12 +1,12 @@
 package com.github.codogma.codogmaback.config;
 
-import com.github.codogma.codogmaback.dto.GetArticle;
-import com.github.codogma.codogmaback.dto.GetCategory;
+import com.github.codogma.codogmaback.dto.GetArticleDTO;
+import com.github.codogma.codogmaback.dto.GetCategoryDTO;
 import com.github.codogma.codogmaback.dto.GetComment;
 import com.github.codogma.codogmaback.dto.GetCompilation;
-import com.github.codogma.codogmaback.dto.GetNotification;
-import com.github.codogma.codogmaback.dto.GetTag;
-import com.github.codogma.codogmaback.dto.GetUser;
+import com.github.codogma.codogmaback.dto.GetNotificationDTO;
+import com.github.codogma.codogmaback.dto.GetTagDTO;
+import com.github.codogma.codogmaback.dto.GetUserDTO;
 import java.time.Duration;
 import java.util.List;
 import javax.cache.CacheManager;
@@ -19,7 +19,6 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.cache.jcache.JCacheCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,7 +26,7 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 
 @Configuration
-@EnableCaching
+//@EnableCaching
 public class EhcacheConfig {
 
   @Value("${spring.cache.jcache.tti-minutes}")
@@ -39,47 +38,47 @@ public class EhcacheConfig {
   @Primary
   public JCacheCacheManager jCacheManager() {
     // Конфигурация для статьи
-    CacheConfiguration<Object, GetArticle> articleByIdConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, GetArticle.class,
+    CacheConfiguration<Object, GetArticleDTO> articleByIdConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, GetArticleDTO.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
     // Конфигурация для статей
-    CacheConfiguration<Object, Page<GetArticle>> articlesConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<Page<GetArticle>>) (Class<?>) Page.class,
+    CacheConfiguration<Object, Page<GetArticleDTO>> articlesConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<Page<GetArticleDTO>>) (Class<?>) Page.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti)))
         .withResourcePools(ResourcePoolsBuilder.heap(100)).build();
 
     // Конфигурация для просмотренных статей
-    CacheConfiguration<Object, Page<GetArticle>> viewedArticlesConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<Page<GetArticle>>) (Class<?>) Page.class,
+    CacheConfiguration<Object, Page<GetArticleDTO>> viewedArticlesConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<Page<GetArticleDTO>>) (Class<?>) Page.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti)))
         .withResourcePools(ResourcePoolsBuilder.heap(100)).build();
 
     // Конфигурация для рекомендаций
-    CacheConfiguration<Long, List<GetArticle>> recommendationsConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Long.class, (Class<List<GetArticle>>) (Class<?>) List.class,
+    CacheConfiguration<Long, List<GetArticleDTO>> recommendationsConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Long.class, (Class<List<GetArticleDTO>>) (Class<?>) List.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
     // Конфигурация для категории
-    CacheConfiguration<Object, GetCategory> categoryByIdConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, GetCategory.class,
+    CacheConfiguration<Object, GetCategoryDTO> categoryByIdConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, GetCategoryDTO.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
     // Конфигурация для категорий
-    CacheConfiguration<Object, Page<GetCategory>> categoriesConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<Page<GetCategory>>) (Class<?>) Page.class,
+    CacheConfiguration<Object, Page<GetCategoryDTO>> categoriesConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<Page<GetCategoryDTO>>) (Class<?>) Page.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti)))
         .withResourcePools(ResourcePoolsBuilder.heap(100)).build();
 
     // Конфигурация для категорий по названию
-    CacheConfiguration<Object, List<GetCategory>> categoriesByNameConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<List<GetCategory>>) (Class<?>) List.class,
+    CacheConfiguration<Object, List<GetCategoryDTO>> categoriesByNameConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<List<GetCategoryDTO>>) (Class<?>) List.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
@@ -110,27 +109,27 @@ public class EhcacheConfig {
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
     // Конфигурация для подборок
-    CacheConfiguration<Object, Page<GetNotification>> notificationsConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<Page<GetNotification>>) (Class<?>) Page.class,
+    CacheConfiguration<Object, Page<GetNotificationDTO>> notificationsConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<Page<GetNotificationDTO>>) (Class<?>) Page.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti)))
         .withResourcePools(ResourcePoolsBuilder.heap(100)).build();
 
     // Конфигурация для тегов по названию
-    CacheConfiguration<Object, List<GetTag>> tagsByNameConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<List<GetTag>>) (Class<?>) List.class,
+    CacheConfiguration<Object, List<GetTagDTO>> tagsByNameConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<List<GetTagDTO>>) (Class<?>) List.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
     // Конфигурация для пользователя
-    CacheConfiguration<Object, GetUser> userByUsernameConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, GetUser.class,
+    CacheConfiguration<Object, GetUserDTO> userByUsernameConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, GetUserDTO.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti))).build();
 
     // Конфигурация для пользователей
-    CacheConfiguration<Object, Page<GetUser>> usersConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
-            Object.class, (Class<Page<GetUser>>) (Class<?>) Page.class,
+    CacheConfiguration<Object, Page<GetUserDTO>> usersConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(
+            Object.class, (Class<Page<GetUserDTO>>) (Class<?>) Page.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES))
         .withExpiry(ExpiryPolicyBuilder.timeToIdleExpiration(Duration.ofMinutes(tti)))
         .withResourcePools(ResourcePoolsBuilder.heap(100)).build();

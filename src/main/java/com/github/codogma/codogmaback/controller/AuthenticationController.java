@@ -1,8 +1,8 @@
 package com.github.codogma.codogmaback.controller;
 
 import com.github.codogma.codogmaback.dto.AuthDTO;
-import com.github.codogma.codogmaback.dto.SignInRequest;
-import com.github.codogma.codogmaback.dto.SignUpRequest;
+import com.github.codogma.codogmaback.dto.SignInRequestDTO;
+import com.github.codogma.codogmaback.dto.SignUpRequestDTO;
 import com.github.codogma.codogmaback.service.AuthenticationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -38,7 +38,7 @@ public class AuthenticationController {
   // TODO: исправить регистрацию на Swagger
   @PostMapping(value = "/sign-up", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   @Operation(summary = "Register a new user")
-  public ResponseEntity<String> signUp(@Valid @ModelAttribute SignUpRequest signUpRequest,
+  public ResponseEntity<String> signUp(@Valid @ModelAttribute SignUpRequestDTO signUpRequest,
       @RequestPart(value = "avatar") MultipartFile avatar, HttpServletRequest request) {
     String username = authenticationService.signUp(signUpRequest, avatar, request).getUsername();
     return ResponseEntity.status(HttpStatus.CREATED)
@@ -54,7 +54,7 @@ public class AuthenticationController {
 
   @PostMapping("/sign-in")
   @Operation(summary = "Authenticate the user")
-  public ResponseEntity<AuthDTO> signIn(@Valid @RequestBody SignInRequest signInRequest,
+  public ResponseEntity<AuthDTO> signIn(@Valid @RequestBody SignInRequestDTO signInRequest,
       HttpServletRequest request, HttpServletResponse response) {
     AuthDTO authenticatedUser = authenticationService.signIn(signInRequest, request, response);
     return ResponseEntity.ok(authenticatedUser);

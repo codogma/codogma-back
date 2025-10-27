@@ -1,10 +1,10 @@
 package com.github.codogma.codogmaback.service;
 
-import com.github.codogma.codogmaback.dto.CreateComment;
-import com.github.codogma.codogmaback.dto.GetArticle;
+import com.github.codogma.codogmaback.dto.CreateCommentDTO;
+import com.github.codogma.codogmaback.dto.GetArticleDTO;
 import com.github.codogma.codogmaback.dto.GetComment;
-import com.github.codogma.codogmaback.dto.GetUser;
-import com.github.codogma.codogmaback.dto.UpdateComment;
+import com.github.codogma.codogmaback.dto.GetUserDTO;
+import com.github.codogma.codogmaback.dto.UpdateCommentDTO;
 import com.github.codogma.codogmaback.exception.ArticleNotFoundException;
 import com.github.codogma.codogmaback.exception.CommentNotFoundException;
 import com.github.codogma.codogmaback.model.ArticleModel;
@@ -81,7 +81,7 @@ public class CommentService {
 
   @Transactional
   @CacheEvict(value = "comments", allEntries = true)
-  public GetComment createComment(CreateComment createComment, UserModel userModel) {
+  public GetComment createComment(CreateCommentDTO createComment, UserModel userModel) {
     ArticleModel article = articleRepository.findById(createComment.getArticleId())
         .orElseThrow(() -> new ArticleNotFoundException("Article not found"));
     CommentModel comment = new CommentModel();
@@ -156,7 +156,7 @@ public class CommentService {
 
   @Transactional
   @CacheEvict(value = "comments", allEntries = true)
-  public GetComment updateComment(Long commentId, UpdateComment updateComment,
+  public GetComment updateComment(Long commentId, UpdateCommentDTO updateComment,
       UserModel userModel) {
     CommentModel comment = commentRepository.findById(commentId)
         .orElseThrow(() -> new CommentNotFoundException("Comment not found by id " + commentId));
@@ -185,14 +185,14 @@ public class CommentService {
         .map(this::convertCommentModelToDTO).toList();
     return GetComment.builder().id(commentModel.getId()).status(commentModel.getStatus())
         .content(commentModel.getContent()).user(
-            GetUser.builder().username(commentModel.getUser().getUsername())
+            GetUserDTO.builder().username(commentModel.getUser().getUsername())
                 .avatarUrl(commentModel.getUser().getAvatarUrl()).build())
         .createdAt(commentModel.getCreatedAt()).replies(replies).build();
   }
 
   private GetComment convertCommentModelToDTOWithArticleData(CommentModel commentModel) {
     GetComment comment = convertCommentModelToDTO(commentModel);
-    comment.setArticle(GetArticle.builder().id(commentModel.getArticle().getId())
+    comment.setArticle(GetArticleDTO.builder().id(commentModel.getArticle().getId())
         .title(commentModel.getArticle().getTitle()).build());
     comment.setReplies(null);
     return comment;

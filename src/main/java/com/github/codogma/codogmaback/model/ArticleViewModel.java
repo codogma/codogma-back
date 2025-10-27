@@ -28,7 +28,7 @@ import org.hibernate.search.mapper.pojo.mapping.definition.annotation.GenericFie
 @AllArgsConstructor
 @Table(name = "article_views", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id",
     "article_id"}))
-public class ArticleView {
+public class ArticleViewModel {
 
   @Id
   @GenericField

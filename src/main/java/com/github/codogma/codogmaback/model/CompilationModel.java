@@ -52,7 +52,7 @@ public class CompilationModel {
   @OneToMany(mappedBy = "compilation", cascade = CascadeType.ALL, orphanRemoval = true)
   @OrderBy("position ASC")
   @ToString.Exclude
-  private List<CompilationArticle> compilationArticles = new ArrayList<>();
+  private List<CompilationArticleModel> compilationArticles = new ArrayList<>();
   @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "user_id", nullable = false)
   @ToString.Exclude

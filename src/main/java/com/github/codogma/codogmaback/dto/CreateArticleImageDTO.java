@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 @NoArgsConstructor
 @AllArgsConstructor
 @Schema(name = "Create Article Image")
-public class CreateArticleImage {
+public class CreateArticleImageDTO {
 
   @Schema(description = "Image file", requiredMode = RequiredMode.REQUIRED)
   private MultipartFile image;

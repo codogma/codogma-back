@@ -1,6 +1,6 @@
 package com.github.codogma.codogmaback.controller;
 
-import com.github.codogma.codogmaback.dto.CreateArticleImage;
+import com.github.codogma.codogmaback.dto.CreateArticleImageDTO;
 import com.github.codogma.codogmaback.dto.PaletteDTO;
 import com.github.codogma.codogmaback.service.ImageUploadService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -34,7 +34,7 @@ public class ImageUploadController {
       @RequestPart("image") MultipartFile image,
       @RequestPart(value = "palette", required = false) PaletteDTO palette,
       @RequestParam("isPreview") boolean isPreview) {
-    CreateArticleImage createArticleImage = CreateArticleImage.builder().image(image)
+    CreateArticleImageDTO createArticleImage = CreateArticleImageDTO.builder().image(image)
         .isPreview(isPreview).palette(palette).build();
     String imageUrl = imageUploadService.uploadArticleImage(articleId, createArticleImage);
     return ResponseEntity.ok(imageUrl);
